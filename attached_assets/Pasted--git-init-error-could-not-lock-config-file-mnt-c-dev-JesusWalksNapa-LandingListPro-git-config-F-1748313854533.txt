@@ -1,0 +1,127 @@
+ git init
+error: could not lock config file /mnt/c/dev/JesusWalksNapa/LandingListPro/.git/config: File exists
+fatal: could not set 'core.repositoryformatversion' to '0'
+markur@NapaDatAI:/mnt/c/dev/JesusWalksNapa/LandingListPro$ git remote -v
+markur@NapaDatAI:/mnt/c/dev/JesusWalksNapa/LandingListPro$ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   .gitignore
+        modified:   .replit
+        modified:   "attached_assets/DALL\302\267E 2025-03-15 09.19.36 - A highly realistic photograph of a scenic vineyard landscape in Napa Valley, California, during golden hour. The focus is on a large oak tree and a ru.webp"
+        modified:   attached_assets/IMG_8357.jpeg
+        modified:   attached_assets/IMG_8361.jpeg
+        modified:   attached_assets/IMG_8364.jpeg
+        modified:   attached_assets/IMG_8365.jpeg
+        modified:   attached_assets/Pasted-2025-03-29-14-00-42-90-381f5f26-User-throw-new-Error-2025-03-29-14-00-42-90-381f5f26-User-2025-03-1743282978290.txt
+        modified:   attached_assets/Screen Shot 2025-03-15 at 2.00.40 AM.png
+        modified:   attached_assets/Screen Shot 2025-03-15 at 7.36.01 PM.png
+        modified:   attached_assets/Screen Shot 2025-03-15 at 7.43.27 PM.png
+        modified:   attached_assets/Screen Shot 2025-04-24 at 2.25.25 AM.png
+        modified:   attached_assets/Screen Shot 2025-04-24 at 2.36.54 AM.png
+        modified:   client/index.html
+        modified:   client/src/App.tsx
+        modified:   client/src/components/forms/ShippingAddressForm.tsx
+        modified:   client/src/components/forms/ShippingRateSelector.tsx
+        modified:   client/src/components/layouts/AdminLayout.tsx
+        modified:   client/src/components/layouts/MainLayout.tsx
+        modified:   client/src/components/sections/Features.tsx
+        modified:   client/src/components/sections/Hero.tsx
+        modified:   client/src/components/sections/Newsletter.tsx
+        modified:   client/src/components/sections/UpcomingEvents.tsx
+        modified:   client/src/components/ui/accordion.tsx
+        modified:   client/src/components/ui/alert-dialog.tsx
+        modified:   client/src/components/ui/alert.tsx
+        modified:   client/src/components/ui/aspect-ratio.tsx
+        modified:   client/src/components/ui/avatar.tsx
+        modified:   client/src/components/ui/badge.tsx
+        modified:   client/src/components/ui/breadcrumb.tsx
+        modified:   client/src/components/ui/button.tsx
+        modified:   client/src/components/ui/calendar.tsx
+        modified:   client/src/components/ui/card.tsx
+        modified:   client/src/components/ui/carousel.tsx
+        modified:   client/src/components/ui/chart.tsx
+        modified:   client/src/components/ui/checkbox.tsx
+        modified:   client/src/components/ui/collapsible.tsx
+        modified:   client/src/components/ui/command.tsx
+        modified:   client/src/components/ui/context-menu.tsx
+        modified:   client/src/components/ui/dialog.tsx
+        modified:   client/src/components/ui/drawer.tsx
+        modified:   client/src/components/ui/dropdown-menu.tsx
+        modified:   client/src/components/ui/form.tsx
+        modified:   client/src/components/ui/hover-card.tsx
+        modified:   client/src/components/ui/input-otp.tsx
+        modified:   client/src/components/ui/input.tsx
+        modified:   client/src/components/ui/label.tsx
+        modified:   client/src/components/ui/menubar.tsx
+        modified:   client/src/components/ui/navigation-menu.tsx
+        modified:   client/src/components/ui/pagination.tsx
+        modified:   client/src/components/ui/popover.tsx
+        modified:   client/src/components/ui/progress.tsx
+        modified:   client/src/components/ui/radio-group.tsx
+        modified:   client/src/components/ui/resizable.tsx
+        modified:   client/src/components/ui/scroll-area.tsx
+        modified:   client/src/components/ui/select.tsx
+        modified:   client/src/components/ui/separator.tsx
+        modified:   client/src/components/ui/sheet.tsx
+        modified:   client/src/components/ui/sidebar.tsx
+        modified:   client/src/components/ui/skeleton.tsx
+        modified:   client/src/components/ui/slider.tsx
+        modified:   client/src/components/ui/switch.tsx
+        modified:   client/src/components/ui/table.tsx
+        modified:   client/src/components/ui/tabs.tsx
+        modified:   client/src/components/ui/textarea.tsx
+        modified:   client/src/components/ui/toast.tsx
+        modified:   client/src/components/ui/toaster.tsx
+        modified:   client/src/components/ui/toggle-group.tsx
+        modified:   client/src/components/ui/toggle.tsx
+        modified:   client/src/components/ui/tooltip.tsx
+        modified:   client/src/hooks/use-cart.tsx
+        modified:   client/src/hooks/use-mobile.ts
+        modified:   client/src/hooks/use-mobile.tsx
+        modified:   client/src/hooks/use-toast.ts
+        modified:   client/src/index.css
+        modified:   client/src/lib/queryClient.ts
+        modified:   client/src/lib/utils.ts
+        modified:   client/src/main.tsx
+        modified:   client/src/pages/admin-setup.tsx
+        modified:   client/src/pages/admin/index.tsx
+        modified:   client/src/pages/admin/orders.tsx
+        modified:   client/src/pages/admin/products.tsx
+        modified:   client/src/pages/admin/users.tsx
+        modified:   client/src/pages/cart.tsx
+        modified:   client/src/pages/checkout.tsx
+        modified:   client/src/pages/events.tsx
+        modified:   client/src/pages/home.tsx
+        modified:   client/src/pages/login.tsx
+        modified:   client/src/pages/not-found.tsx
+        modified:   client/src/pages/order-confirmation.tsx
+        modified:   client/src/pages/register.tsx
+        modified:   client/src/pages/shop/index.tsx
+        modified:   drizzle.config.ts
+        modified:   drizzle/migrate.ts
+        modified:   drizzle/migrations/0000_initial.sql
+        modified:   generated-icon.png
+        modified:   package-lock.json
+        modified:   package.json
+        modified:   postcss.config.js
+        modified:   public/assets/napa-valley-vineyard.jpg
+        modified:   public/assets/napa-valley-vineyard.webp
+        modified:   replit.nix
+        modified:   server/db.ts
+        modified:   server/index.ts
+        modified:   server/routes.ts
+        modified:   server/services/openai.ts
+        modified:   server/services/shipping.ts
+        modified:   server/storage.ts
+        modified:   server/types.ts
+        modified:   server/vite.ts
+        modified:   shared/schema.ts
+        modified:   tailwind.config.ts
+        modified:   theme.json
+        modified:   tsconfig.json
+        modified:   vite-env.d.ts
+        modified:   vite.config.ts
+
+no changes added to commit (use "git add" and/or "git commit -a")
