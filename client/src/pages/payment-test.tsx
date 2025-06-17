@@ -120,8 +120,109 @@ function StripeTestForm() {
 }
 
 /**
+ * SafeKey Payment Test Component
+ * Handles SafeKey payment testing with push notification approval
+ */
+function SafeKeyTestForm() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'error' | 'pending'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  const handleSafeKeyTest = async () => {
+    setIsProcessing(true);
+    setErrorMessage('');
+    setPaymentStatus('pending');
+
+    try {
+      // Simulate SafeKey payment initialization
+      // In a real implementation, this would integrate with SafeKey's SDK
+      const response = await fetch('/api/safekey/initiate-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: TEST_AMOUNT,
+          currency: 'USD'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Simulate waiting for mobile app approval
+        setTimeout(() => {
+          setPaymentStatus('success');
+          console.log('SafeKey payment approved via mobile app');
+        }, 3000);
+      } else {
+        setErrorMessage(result.error || 'SafeKey payment failed');
+        setPaymentStatus('error');
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || 'SafeKey processing failed');
+      setPaymentStatus('error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 border rounded-lg bg-blue-50">
+        <div className="text-center">
+          {paymentStatus === 'pending' ? (
+            <div className="space-y-2">
+              <div className="animate-pulse text-blue-600">
+                📱 Check your mobile app for payment approval
+              </div>
+              <div className="text-sm text-muted-foreground">
+                SafeKey notification sent to your registered device
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Card details will be verified via your mobile banking app
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <Button 
+        onClick={handleSafeKeyTest}
+        disabled={isProcessing}
+        className="w-full bg-blue-600 hover:bg-blue-700"
+      >
+        {isProcessing ? 'Sending notification...' : `Test SafeKey Payment ($${TEST_AMOUNT})`}
+      </Button>
+
+      {/* Payment Status Display */}
+      {paymentStatus === 'success' && (
+        <div className="flex items-center gap-2 text-green-600 text-sm">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>SafeKey payment approved via mobile app!</span>
+        </div>
+      )}
+
+      {paymentStatus === 'error' && (
+        <div className="text-red-600 text-sm">
+          <strong>Error:</strong> {errorMessage}
+        </div>
+      )}
+
+      {paymentStatus === 'pending' && (
+        <div className="flex items-center gap-2 text-blue-600 text-sm">
+          <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+          <span>Waiting for mobile app approval...</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Main Payment Testing Page Component
- * Renders both Stripe and Square payment forms for comprehensive testing
+ * Renders Stripe, Square, and SafeKey payment forms for comprehensive testing
  */
 export default function PaymentTest() {
   const [squareStatus, setSquareStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -157,7 +258,7 @@ export default function PaymentTest() {
           </div>
 
           {/* Payment Testing Cards */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {/* Stripe Payment Testing */}
             <Card>
               <CardHeader>
@@ -231,6 +332,35 @@ export default function PaymentTest() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* SafeKey Payment Testing */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  </div>
+                  SafeKey Payment Testing
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Test SafeKey payment with mobile app authorization
+                </p>
+              </CardHeader>
+              <CardContent>
+                <SafeKeyTestForm />
+
+                {/* SafeKey Information */}
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-2">How SafeKey Works:</h4>
+                  <div className="text-xs space-y-1">
+                    <div>• Initiates payment request</div>
+                    <div>• Sends push notification to mobile app</div>
+                    <div>• User approves via fingerprint/face ID</div>
+                    <div>• Payment is processed securely</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Testing Instructions */}
@@ -256,6 +386,16 @@ export default function PaymentTest() {
                   <li>Enter any future expiration date</li>
                   <li>Use any 3-digit CVV code</li>
                   <li>Test should process a ${TEST_AMOUNT} payment</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold">For SafeKey Testing:</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground ml-4">
+                  <li>Click the SafeKey payment button</li>
+                  <li>Simulates sending a push notification</li>
+                  <li>Waits 3 seconds to simulate mobile approval</li>
+                  <li>Demonstrates the cutting-edge authorization flow</li>
                 </ul>
               </div>
 

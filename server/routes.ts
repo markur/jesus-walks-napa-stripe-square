@@ -494,6 +494,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SafeKey payment initiation endpoint
+  app.post("/api/safekey/initiate-payment", (req, res) => {
+    try {
+      const { amount, currency } = req.body;
+
+      // Simulate SafeKey payment initiation
+      // In a real implementation, this would integrate with SafeKey's API
+      console.log(`SafeKey payment initiated: ${currency} ${amount}`);
+
+      // Simulate successful initiation
+      res.json({
+        success: true,
+        paymentId: `safekey_${Date.now()}`,
+        message: "Push notification sent to mobile device"
+      });
+    } catch (error) {
+      console.error("SafeKey payment error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to initiate SafeKey payment"
+      });
+    }
+  });
+
   // TODO: Shipping routes temporarily disabled for deployment stability
   // These will be re-enabled once address validation service is stabilized
   /*
