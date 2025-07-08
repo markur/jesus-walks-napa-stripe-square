@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,7 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       try {
         const response = await fetch('/api/crypto/exchange-rates?currency=USD');
         const data = await response.json();
-        
+
         if (response.ok && Array.isArray(data)) {
           setExchangeRates(data);
         } else {
@@ -248,78 +247,10 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="bitcoin">
-                      <div className="flex items-center gap-2">
-                        <Bitcoin className="h-4 w-4" />
-                        Bitcoin (BTC)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="ethereum">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Ethereum (ETH)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="usdc">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        USDC (Stablecoin)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="tether">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Tether (USDT)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="litecoin">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Litecoin (LTC)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="cardano">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Cardano (ADA)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="solana">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Solana (SOL)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="polygon">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Polygon (MATIC)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="avalanche">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Avalanche (AVAX)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="chainlink">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Chainlink (LINK)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="uniswap">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Uniswap (UNI)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="binancecoin">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4" />
-                        Binance Coin (BNB)
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="bitcoin">Bitcoin (BTC)</SelectItem>
+                    <SelectItem value="ethereum">Ethereum (ETH)</SelectItem>
+                    <SelectItem value="usdc">USD Coin (USDC) - Stablecoin</SelectItem>
+                    <SelectItem value="litecoin">Litecoin (LTC)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
