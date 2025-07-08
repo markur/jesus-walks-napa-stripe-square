@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import { shippingService } from "./services/shipping";
 import { generateChatResponse, countTokens } from "./services/openai";
 import { generateClaudeResponse, countClaudeTokens } from "./services/anthropic";
+import { generateGeminiResponse, countGeminiTokens } from "./services/gemini";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -693,6 +694,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (modelConfig.modelId.startsWith('claude-')) {
         response = await generateClaudeResponse(messageHistory, modelConfig);
         tokenCount = await countClaudeTokens(response);
+      } else if (modelConfig.modelId.startsWith('gemini-')) {
+        response = await generateGeminiResponse(messageHistory, modelConfig);
+        tokenCount = await countGeminiTokens(response);
       } else {
         response = await generateChatResponse(messageHistory, modelConfig);
         tokenCount = await countTokens(response);
