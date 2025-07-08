@@ -46,7 +46,15 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
             { cryptocurrency: 'bitcoin', fiatCurrency: 'USD', rate: 45000, timestamp: Date.now() },
             { cryptocurrency: 'ethereum', fiatCurrency: 'USD', rate: 3200, timestamp: Date.now() },
             { cryptocurrency: 'usdc', fiatCurrency: 'USD', rate: 1.00, timestamp: Date.now() },
-            { cryptocurrency: 'litecoin', fiatCurrency: 'USD', rate: 100, timestamp: Date.now() }
+            { cryptocurrency: 'tether', fiatCurrency: 'USD', rate: 1.00, timestamp: Date.now() },
+            { cryptocurrency: 'litecoin', fiatCurrency: 'USD', rate: 100, timestamp: Date.now() },
+            { cryptocurrency: 'cardano', fiatCurrency: 'USD', rate: 0.85, timestamp: Date.now() },
+            { cryptocurrency: 'solana', fiatCurrency: 'USD', rate: 125, timestamp: Date.now() },
+            { cryptocurrency: 'polygon', fiatCurrency: 'USD', rate: 1.20, timestamp: Date.now() },
+            { cryptocurrency: 'avalanche', fiatCurrency: 'USD', rate: 35, timestamp: Date.now() },
+            { cryptocurrency: 'chainlink', fiatCurrency: 'USD', rate: 18, timestamp: Date.now() },
+            { cryptocurrency: 'uniswap', fiatCurrency: 'USD', rate: 12, timestamp: Date.now() },
+            { cryptocurrency: 'binancecoin', fiatCurrency: 'USD', rate: 420, timestamp: Date.now() }
           ]);
         }
       } catch (error) {
@@ -56,7 +64,15 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           { cryptocurrency: 'bitcoin', fiatCurrency: 'USD', rate: 45000, timestamp: Date.now() },
           { cryptocurrency: 'ethereum', fiatCurrency: 'USD', rate: 3200, timestamp: Date.now() },
           { cryptocurrency: 'usdc', fiatCurrency: 'USD', rate: 1.00, timestamp: Date.now() },
-          { cryptocurrency: 'litecoin', fiatCurrency: 'USD', rate: 100, timestamp: Date.now() }
+          { cryptocurrency: 'tether', fiatCurrency: 'USD', rate: 1.00, timestamp: Date.now() },
+          { cryptocurrency: 'litecoin', fiatCurrency: 'USD', rate: 100, timestamp: Date.now() },
+          { cryptocurrency: 'cardano', fiatCurrency: 'USD', rate: 0.85, timestamp: Date.now() },
+          { cryptocurrency: 'solana', fiatCurrency: 'USD', rate: 125, timestamp: Date.now() },
+          { cryptocurrency: 'polygon', fiatCurrency: 'USD', rate: 1.20, timestamp: Date.now() },
+          { cryptocurrency: 'avalanche', fiatCurrency: 'USD', rate: 35, timestamp: Date.now() },
+          { cryptocurrency: 'chainlink', fiatCurrency: 'USD', rate: 18, timestamp: Date.now() },
+          { cryptocurrency: 'uniswap', fiatCurrency: 'USD', rate: 12, timestamp: Date.now() },
+          { cryptocurrency: 'binancecoin', fiatCurrency: 'USD', rate: 420, timestamp: Date.now() }
         ]);
       }
     };
@@ -200,7 +216,15 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       bitcoin: 'BTC',
       ethereum: 'ETH',
       usdc: 'USDC',
-      litecoin: 'LTC'
+      tether: 'USDT',
+      litecoin: 'LTC',
+      cardano: 'ADA',
+      solana: 'SOL',
+      polygon: 'MATIC',
+      avalanche: 'AVAX',
+      chainlink: 'LINK',
+      uniswap: 'UNI',
+      binancecoin: 'BNB'
     };
     return symbols[crypto] || crypto.toUpperCase();
   };
@@ -239,13 +263,61 @@ export function CryptoPaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
                     <SelectItem value="usdc">
                       <div className="flex items-center gap-2">
                         <Coins className="h-4 w-4" />
-                        USDC
+                        USDC (Stablecoin)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="tether">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Tether (USDT)
                       </div>
                     </SelectItem>
                     <SelectItem value="litecoin">
                       <div className="flex items-center gap-2">
                         <Coins className="h-4 w-4" />
                         Litecoin (LTC)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="cardano">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Cardano (ADA)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="solana">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Solana (SOL)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="polygon">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Polygon (MATIC)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="avalanche">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Avalanche (AVAX)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chainlink">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Chainlink (LINK)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="uniswap">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Uniswap (UNI)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="binancecoin">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        Binance Coin (BNB)
                       </div>
                     </SelectItem>
                   </SelectContent>

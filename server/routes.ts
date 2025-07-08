@@ -660,36 +660,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Coinbase crypto payment endpoint
-  app.post("/api/crypto/coinbase/process-payment", async (req, res) => {
-    try {
-      const { processCoinbaseCryptoPayment } = require('./services/crypto-payments');
-      const result = await processCoinbaseCryptoPayment(req.body);
-      res.json(result);
-    } catch (error: any) {
-      console.error('Coinbase crypto payment error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Coinbase crypto payment failed'
-      });
-    }
-  });
+  // Coinbase crypto payment endpoint (duplicate removed)
+  // Already defined above with proper ES6 import
 
-  // Crypto payment verification endpoint
-  app.post("/api/crypto/verify-payment", async (req, res) => {
-    try {
-      const { verifyCryptoPayment } = require('./services/crypto-payments');
-      const { paymentId, provider } = req.body;
-      const result = await verifyCryptoPayment(paymentId, provider);
-      res.json(result);
-    } catch (error: any) {
-      console.error('Crypto payment verification error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Crypto payment verification failed'
-      });
-    }
-  });
+  // Crypto payment verification endpoint (duplicate removed)
+  // Already defined above with proper ES6 import
 
   // Coinbase crypto payment endpoint
   app.post("/api/crypto/coinbase/process-payment", async (req, res) => {
@@ -727,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
-    
+
     res.json({ 
       success: true, 
       filename: req.file.filename,

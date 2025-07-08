@@ -28,7 +28,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 export interface CryptoPaymentRequest {
   amount: number;
   currency: string; // USD, EUR, etc.
-  cryptocurrency: 'bitcoin' | 'ethereum' | 'usdc' | 'litecoin';
+  cryptocurrency: 'bitcoin' | 'ethereum' | 'usdc' | 'litecoin' | 'cardano' | 'solana' | 'polygon' | 'avalanche' | 'chainlink' | 'uniswap' | 'tether' | 'binancecoin';
   description: string;
   merchantReference: string;
   customerEmail?: string;
@@ -74,13 +74,61 @@ export async function getCryptoExchangeRates(fiatCurrency: string = 'USD'): Prom
       {
         cryptocurrency: 'usdc',
         fiatCurrency: fiatCurrency,
-        rate: 1.00, // $1.00 per USDC
+        rate: 1.00, // $1.00 per USDC (Stablecoin)
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'tether',
+        fiatCurrency: fiatCurrency,
+        rate: 1.00, // $1.00 per USDT (Stablecoin)
         timestamp: Date.now()
       },
       {
         cryptocurrency: 'litecoin',
         fiatCurrency: fiatCurrency,
         rate: 100, // $100 per LTC
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'cardano',
+        fiatCurrency: fiatCurrency,
+        rate: 0.85, // $0.85 per ADA
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'solana',
+        fiatCurrency: fiatCurrency,
+        rate: 125, // $125 per SOL
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'polygon',
+        fiatCurrency: fiatCurrency,
+        rate: 1.20, // $1.20 per MATIC
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'avalanche',
+        fiatCurrency: fiatCurrency,
+        rate: 35, // $35 per AVAX
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'chainlink',
+        fiatCurrency: fiatCurrency,
+        rate: 18, // $18 per LINK
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'uniswap',
+        fiatCurrency: fiatCurrency,
+        rate: 12, // $12 per UNI
+        timestamp: Date.now()
+      },
+      {
+        cryptocurrency: 'binancecoin',
+        fiatCurrency: fiatCurrency,
+        rate: 420, // $420 per BNB
         timestamp: Date.now()
       }
     ];
@@ -217,11 +265,26 @@ function generateMockWalletAddress(cryptocurrency: string): string {
     bitcoin: '1',
     ethereum: '0x',
     usdc: '0x',
-    litecoin: 'L'
+    tether: '0x',
+    litecoin: 'L',
+    cardano: 'addr1',
+    solana: '',
+    polygon: '0x',
+    avalanche: '0x',
+    chainlink: '0x',
+    uniswap: '0x',
+    binancecoin: 'bnb'
   };
 
   const prefix = prefixes[cryptocurrency as keyof typeof prefixes] || '1';
-  const randomPart = Math.random().toString(36).substring(2, 34);
+  let randomPart = Math.random().toString(36).substring(2, 34);
+  
+  // Special handling for different address formats
+  if (cryptocurrency === 'solana') {
+    randomPart = Math.random().toString(36).substring(2, 44); // Solana addresses are longer
+  } else if (cryptocurrency === 'cardano') {
+    randomPart = Math.random().toString(36).substring(2, 100); // Cardano addresses are very long
+  }
   
   return `${prefix}${randomPart}`;
 }
