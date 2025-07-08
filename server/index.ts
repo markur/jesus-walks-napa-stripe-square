@@ -6,8 +6,12 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import "./types"; // Import type definitions for session
 
+// Determine if this is staging or production
+const isStaging = process.env.REPLIT_DEPLOYMENT && !process.env.CUSTOM_DOMAIN;
+const isProduction = process.env.NODE_ENV === 'production' && !isStaging;
+
 // Check required environment variables only in production
-if (process.env.NODE_ENV === 'production') {
+if (isProduction) {
   const requiredEnvVars = [
     { name: 'DATABASE_URL', message: 'Please add a DATABASE_URL secret in your deployment configuration.' },
     { name: 'SESSION_SECRET', message: 'Please add a SESSION_SECRET secret in your deployment configuration.' }
@@ -101,6 +105,7 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    const environment = isStaging ? 'STAGING' : (isProduction ? 'PRODUCTION' : 'DEVELOPMENT');
+    log(`serving on port ${port} - Environment: ${environment}`);
   });
 })();

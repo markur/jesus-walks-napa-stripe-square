@@ -570,205 +570,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // TODO: Shipping routes temporarily disabled for deployment stability
-  // These will be re-enabled once address validation service is stabilized
-  /*
-  // Shipping routes for address validation and rate calculation
-  app.get("/api/shipping/address-suggestions", async (req, res) => {
+  // Apple Pay configuration endpoint
+  app.get("/api/apple-pay/config", (req, res) => {
     try {
-      const query = req.query.query as string;
-      if (!query) {
-        return res.status(400).json({ error: "Query parameter is required" });
-      }
-
-      const suggestions = await shippingService.getAddressSuggestions(query);
-      res.json(suggestions);
+      const { getApplePayConfig } = require('./services/mobile-payments');
+      res.json(getApplePayConfig());
     } catch (error: any) {
-      console.error("Error getting address suggestions:", error);
-      res.status(500).json({ error: error.message });
+      console.error('Apple Pay config error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get Apple Pay configuration'
+      });
     }
   });
 
-  app.get("/api/shipping/address-details", async (req, res) => {
+  // Google Pay configuration endpoint
+  app.get("/api/google-pay/config", (req, res) => {
     try {
-      const placeId = req.query.placeId as string;
-      if (!placeId) {
-        return res.status(400).json({ error: "PlaceId parameter is required" });
-      }
-
-      const addressDetails = await shippingService.getAddressDetails(placeId);
-      res.json(addressDetails);
+      const { getGooglePayConfig } = require('./services/mobile-payments');
+      res.json(getGooglePayConfig());
     } catch (error: any) {
-      console.error("Error getting address details:", error);
-      res.status(500).json({ error: error.message });
+      console.error('Google Pay config error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get Google Pay configuration'
+      });
     }
   });
 
-  app.get("/api/shipping/postal-code-details", async (req, res) => {
+  // Apple Pay payment processing endpoint
+  app.post("/api/apple-pay/process-payment", async (req, res) => {
     try {
-      const code = req.query.code as string;
-      if (!code) {
-        return res.status(400).json({ error: "Code parameter is required" });
-      }
-
-      const details = await shippingService.getPostalCodeDetails(code);
-      res.json(details);
+      const { processApplePayPayment } = require('./services/mobile-payments');
+      const result = await processApplePayPayment(req.body);
+      res.json(result);
     } catch (error: any) {
-      console.error("Error getting postal code details:", error);
-      res.status(500).json({ error: error.message });
+      console.error('Apple Pay payment error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Apple Pay payment failed'
+      });
     }
   });
 
-  app.post("/api/shipping/validate-address", async (req, res) => {
+  // Google Pay payment processing endpoint
+  app.post("/api/google-pay/process-payment", async (req, res) => {
     try {
-      console.log("=== BACKEND VALIDATION START ===");
-      console.log("Request body:", JSON.stringify(req.body, null, 2));
-
-      const address = req.body;
-      const validatedAddress = await shippingService.validateAddress(address);
-
-      console.log("Validation result:", JSON.stringify(validatedAddress, null, 2));
-      console.log("=== BACKEND VALIDATION END ===");
-
-      res.json(validatedAddress);
+      const { processGooglePayPayment } = require('./services/mobile-payments');
+      const result = await processGooglePayPayment(req.body);
+      res.json(result);
     } catch (error: any) {
-      console.error("Address validation error:", error);
-      res.status(500).json({ error: error.message });
+      console.error('Google Pay payment error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Google Pay payment failed'
+      });
     }
   });
 
-  app.post("/api/shipping/rates", async (req, res) => {
+  // Crypto exchange rates endpoint
+  app.get("/api/crypto/exchange-rates", async (req, res) => {
     try {
-      const { fromAddress, toAddress, parcelDetails } = req.body;
-      const rates = await shippingService.getShippingRates(fromAddress, toAddress, parcelDetails);
+      const { getCryptoExchangeRates } = require('./services/crypto-payments');
+      const currency = req.query.currency as string || 'USD';
+      const rates = await getCryptoExchangeRates(currency);
       res.json(rates);
     } catch (error: any) {
-      console.error("Error getting shipping rates:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  */
-
-
-  // Chat routes
-  app.get("/api/models", async (req, res) => {
-    try {
-      const models = await storage.getActiveModelConfigs();
-      res.json(models);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch models" });
-    }
-  });
-
-  app.get("/api/conversations", async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const conversations = await storage.getUserConversations(req.session.userId);
-      res.json(conversations);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch conversations" });
-    }
-  });
-
-  app.post("/api/conversations", async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const conversationData = {
-        ...req.body,
-        userId: req.session.userId,
-      };
-      const conversation = await storage.createConversation(conversationData);
-      res.status(201).json(conversation);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create conversation" });
-    }
-  });
-
-  app.get("/api/conversations/:id/messages", async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const conversation = await storage.getConversation(parseInt(req.params.id));
-      if (!conversation || conversation.userId !== req.session.userId) {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      const messages = await storage.getConversationMessages(conversation.id);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch messages" });
-    }
-  });
-
-  app.post("/api/conversations/:id/messages", async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const conversation = await storage.getConversation(parseInt(req.params.id));
-      if (!conversation || conversation.userId !== req.session.userId) {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      // Create user message
-      const userMessage = await storage.createMessage({
-        conversationId: conversation.id,
-        role: 'user',
-        content: req.body.content,
-        tokens: await countTokens(req.body.content),
+      console.error('Crypto exchange rates error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get exchange rates'
       });
+    }
+  });
 
-      // Get model config and generate response
-      const modelConfig = await storage.getModelConfig(conversation.modelConfigId);
-      if (!modelConfig) {
-        throw new Error("Model configuration not found");
-      }
-
-      const messages = await storage.getConversationMessages(conversation.id);
-      const messageHistory = messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
-      
-      // Choose service based on model
-      let response: string;
-      let tokenCount: number;
-      
-      if (modelConfig.modelId.startsWith('claude-')) {
-        response = await generateClaudeResponse(messageHistory, modelConfig);
-        tokenCount = await countClaudeTokens(response);
-      } else if (modelConfig.modelId.startsWith('gemini-')) {
-        response = await generateGeminiResponse(messageHistory, modelConfig);
-        tokenCount = await countGeminiTokens(response);
-      } else {
-        response = await generateChatResponse(messageHistory, modelConfig);
-        tokenCount = await countTokens(response);
-      }
-
-      // Create assistant message
-      const assistantMessage = await storage.createMessage({
-        conversationId: conversation.id,
-        role: 'assistant',
-        content: response,
-        tokens: tokenCount,
-      });
-
-      res.json({
-        userMessage,
-        assistantMessage,
-      });
+  // Stripe crypto payment endpoint
+  app.post("/api/crypto/stripe/process-payment", async (req, res) => {
+    try {
+      const { processStripeCryptoPayment } = require('./services/crypto-payments');
+      const result = await processStripeCryptoPayment(req.body);
+      res.json(result);
     } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to process message" });
+      console.error('Stripe crypto payment error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Stripe crypto payment failed'
+      });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
-}
+  // Coinbase crypto payment endpoint
+  app.post("/api/crypto/coinbase/process-payment", async (req, res) => {
+    try {
+      const { processCoinbaseCryptoPayment } = require('./services/crypto-payments');
+      const result = await processCoinbaseCryptoPayment(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Coinbase crypto payment error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Coinbase crypto payment failed'
+      });
+    }
+  });
 
+  // Crypto payment verification endpoint
+  app.post("/api/crypto/verify-payment", async (req, res) => {
+    try {
+      const { verifyCryptoPayment } = require('./services/crypto-payments');
+      const { paymentId, provider } = req.body;
+      const result = await verifyCryptoPayment(paymentId, provider);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Crypto payment verification error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Crypto payment verification failed'
+      });
+    }
+  });
+
+  // Upload endpoint for file handling
+  app.post('/api/upload', upload.single('file'), (req, res) => {
