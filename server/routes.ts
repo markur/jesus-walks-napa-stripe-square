@@ -5,6 +5,8 @@ import { insertUserSchema, insertEventSchema, insertRegistrationSchema, insertWa
 import { z } from "zod";
 import Stripe from "stripe";
 import { shippingService } from "./services/shipping";
+import { generateChatResponse, countTokens } from "./services/openai";
+import { generateClaudeResponse, countClaudeTokens } from "./services/anthropic";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -682,17 +684,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const messages = await storage.getConversationMessages(conversation.id);
-      const response = await generateChatResponse(
-        messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
-        modelConfig
-      );
+      const messageHistory = messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+      
+      // Choose service based on model
+      let response: string;
+      let tokenCount: number;
+      
+      if (modelConfig.modelId.startsWith('claude-')) {
+        response = await generateClaudeResponse(messageHistory, modelConfig);
+        tokenCount = await countClaudeTokens(response);
+      } else {
+        response = await generateChatResponse(messageHistory, modelConfig);
+        tokenCount = await countTokens(response);
+      }
 
       // Create assistant message
       const assistantMessage = await storage.createMessage({
         conversationId: conversation.id,
         role: 'assistant',
         content: response,
-        tokens: await countTokens(response),
+        tokens: tokenCount,
       });
 
       res.json({
@@ -708,13 +719,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Placeholder functions -  Replace with your actual implementations
-async function countTokens(text: string): Promise<number> {
-  //  Implementation to count tokens (e.g., using a library)
-  return text.split(" ").length; 
-}
-
-async function generateChatResponse(messages: any[], modelConfig: any): Promise<string> {
-  // Implementation to generate a chat response using the modelConfig
-  return "This is a placeholder response.";
-}
