@@ -692,3 +692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Upload endpoint for file handling
   app.post('/api/upload', upload.single('file'), (req, res) => {
+} catch (error) {
+    console.error('Crypto payment error:', error);
+    res.status(500).json({ success: false, error: 'Payment processing failed' });
+  }
+});
+
+export { registerRoutes };
