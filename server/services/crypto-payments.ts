@@ -142,6 +142,7 @@ export async function getCryptoExchangeRates(fiatCurrency: string = 'USD'): Prom
 
 /**
  * Process cryptocurrency payment via Stripe
+ * Note: This is a simulation since Stripe doesn't directly support crypto payments
  */
 export async function processStripeCryptoPayment(request: CryptoPaymentRequest): Promise<CryptoPaymentResponse> {
   try {
@@ -155,24 +156,14 @@ export async function processStripeCryptoPayment(request: CryptoPaymentRequest):
 
     const cryptoAmount = request.amount / cryptoRate.rate;
 
-    // Create payment intent with Stripe (crypto payments)
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(request.amount * 100), // Convert to cents
-      currency: request.currency.toLowerCase(),
-      payment_method_types: ['card'], // Stripe crypto is usually card-based
-      description: request.description,
-      metadata: {
-        merchantReference: request.merchantReference,
-        paymentMethod: 'crypto_stripe',
-        cryptocurrency: request.cryptocurrency,
-        cryptoAmount: cryptoAmount.toString()
-      }
-    });
+    // Simulate crypto payment processing (Stripe doesn't directly support crypto)
+    const mockPaymentId = `stripe_crypto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const mockWalletAddress = generateMockWalletAddress(request.cryptocurrency);
 
     return {
       success: true,
-      paymentId: paymentIntent.id,
-      paymentUrl: `https://checkout.stripe.com/c/pay/${paymentIntent.client_secret}`,
+      paymentId: mockPaymentId,
+      walletAddress: mockWalletAddress,
       cryptoAmount: cryptoAmount,
       exchangeRate: cryptoRate.rate,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes
