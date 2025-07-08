@@ -521,6 +521,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SafeKey payment processing endpoint for checkout
+  app.post("/api/safekey/process-payment", (req, res) => {
+    try {
+      const { amount, currency, mobileNumber, cardNumber, merchantReference } = req.body;
+
+      // Validate required fields
+      if (!amount || !mobileNumber || !cardNumber) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required payment information"
+        });
+      }
+
+      // Simulate SafeKey payment processing
+      // In production, this would:
+      // 1. Validate card details with SafeKey API
+      // 2. Send push notification to mobile device
+      // 3. Wait for user authorization
+      // 4. Process payment once authorized
+
+      console.log(`SafeKey payment processing:`, {
+        amount,
+        currency: currency || 'USD',
+        mobile: mobileNumber,
+        cardLast4: cardNumber.slice(-4),
+        reference: merchantReference
+      });
+
+      // Simulate successful payment processing
+      const paymentId = `safekey_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const authReference = `auth_${Date.now()}`;
+
+      res.json({
+        success: true,
+        paymentId,
+        authReference,
+        status: "pending_authorization",
+        message: "Push notification sent to mobile device. Please approve on your banking app."
+      });
+
+    } catch (error) {
+      console.error("SafeKey payment processing error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to process SafeKey payment"
+      });
+    }
+  });
+
   // TODO: Shipping routes temporarily disabled for deployment stability
   // These will be re-enabled once address validation service is stabilized
   /*

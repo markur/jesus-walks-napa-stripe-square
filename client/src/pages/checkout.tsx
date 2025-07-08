@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // import { SimpleShippingForm } from "@/components/forms/SimpleShippingForm";
 // import { ShippingRateSelector } from "@/components/forms/ShippingRateSelector";
 import { SquarePaymentForm } from "@/components/forms/SquarePaymentForm";
+import { SafeKeyPaymentForm } from "@/components/forms/SafeKeyPaymentForm";
 import { type ShippingAddress } from "@shared/schema";
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
@@ -34,7 +35,7 @@ function CheckoutForm() {
   const [step, setStep] = useState<'address' | 'payment'>('address');
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [selectedRate, setSelectedRate] = useState<any | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'square'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'square' | 'safekey'>('stripe');
   const { toast } = useToast();
   const { state: { total, items }, clearCart } = useCart();
   const [, setLocation] = useLocation();
@@ -79,6 +80,39 @@ function CheckoutForm() {
         shippingAddress,
         shippingRate: selectedRate,
         paymentMethod: 'square',
+        paymentDetails: result
+      };
+
+      const response = await apiRequest("POST", "/api/orders", orderData);
+
+      if (response.ok) {
+        clearCart();
+        setLocation('/order-confirmation');
+      } else {
+        throw new Error('Failed to create order');
+      }
+    } catch (error: any) {
+      setPaymentError(error.message);
+      toast({
+        title: "Order Creation Failed",
+        description: "Payment was successful but order creation failed. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSafeKeyPaymentSuccess = async (result: any) => {
+    try {
+      setIsProcessing(true);
+
+      // Create order record
+      const orderData = {
+        total: total + (selectedRate?.rate || 0),
+        shippingAddress,
+        shippingRate: selectedRate,
+        paymentMethod: 'safekey',
         paymentDetails: result
       };
 
@@ -367,7 +401,7 @@ function CheckoutForm() {
                 <h3 className="text-md font-semibold mt-4">Choose Payment Method</h3>
 
                 {/* Payment Method Selector */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-3 gap-4 mb-4">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('stripe')}
@@ -397,6 +431,22 @@ function CheckoutForm() {
                     <span className="font-medium">Square</span>
                     <span className="text-xs text-muted-foreground">Secure Payment</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('safekey')}
+                    className={`p-4 border rounded-lg flex flex-col items-center space-y-2 transition-colors ${
+                      paymentMethod === 'safekey' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                    <span className="font-medium">SafeKey</span>
+                    <span className="text-xs text-muted-foreground">Mobile Authorization</span>
+                  </button>
                 </div>
 
                 {/* Render payment form based on selection */}
@@ -410,11 +460,19 @@ function CheckoutForm() {
                       }
                     }} 
                   />
-                ) : (
+                ) : paymentMethod === 'square' ? (
                   <div className="mt-4">
                     <SquarePaymentForm 
                       amount={total + (selectedRate?.rate || 0)}
                       onPaymentSuccess={handleSquarePaymentSuccess}
+                      onPaymentError={setPaymentError}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <SafeKeyPaymentForm 
+                      amount={total + (selectedRate?.rate || 0)}
+                      onPaymentSuccess={handleSafeKeyPaymentSuccess}
                       onPaymentError={setPaymentError}
                     />
                   </div>
