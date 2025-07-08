@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crypto exchange rates endpoint
   app.get("/api/crypto/exchange-rates", async (req, res) => {
     try {
-      const { getCryptoExchangeRates } = require('./services/crypto-payments');
+      const { getCryptoExchangeRates } = await import('./services/crypto-payments');
       const currency = req.query.currency as string || 'USD';
       const rates = await getCryptoExchangeRates(currency);
       res.json(rates);
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe crypto payment endpoint
   app.post("/api/crypto/stripe/process-payment", async (req, res) => {
     try {
-      const { processStripeCryptoPayment } = require('./services/crypto-payments');
+      const { processStripeCryptoPayment } = await import('./services/crypto-payments');
       const result = await processStripeCryptoPayment(req.body);
       res.json(result);
     } catch (error: any) {
@@ -687,6 +687,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: error.message || 'Crypto payment verification failed'
+      });
+    }
+  });
+
+  // Coinbase crypto payment endpoint
+  app.post("/api/crypto/coinbase/process-payment", async (req, res) => {
+    try {
+      const { processCoinbaseCryptoPayment } = await import('./services/crypto-payments');
+      const result = await processCoinbaseCryptoPayment(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Coinbase crypto payment error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Coinbase crypto payment failed'
+      });
+    }
+  });
+
+  // Crypto payment verification endpoint
+  app.post("/api/crypto/verify-payment", async (req, res) => {
+    try {
+      const { verifyCryptoPayment } = await import('./services/crypto-payments');
+      const { paymentId, provider } = req.body;
+      const result = await verifyCryptoPayment(paymentId, provider);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Crypto payment verification error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Payment verification failed'
       });
     }
   });
