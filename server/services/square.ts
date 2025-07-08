@@ -8,6 +8,7 @@
  * - Automatic environment detection (sandbox vs production)
  * - Payment tokenization through Square Web SDK
  * - Secure payment processing with proper error handling
+ * - 3D Secure / SCA support for enhanced security (similar to SafeKey)
  * 
  * Environment Variables Required:
  * - SQUARE_APPLICATION_ID_SANDBOX: Square sandbox application ID
