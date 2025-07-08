@@ -80,6 +80,7 @@ const upload = multer({
 const writeFileAsync = promisify(fs.writeFile);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const server = createServer(app);
   // Secure admin recovery route - use long random URL to prevent bot attacks
   app.get("/api/admin-recovery-secure-f8a2b4c6d9e1f3g7h8j9k2l4m6n8p0q2r5s7t9u1v3w5x7y9z1a3b5c7d9e", async (req, res) => {
     try {
@@ -702,4 +703,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       path: `/uploads/${req.file.filename}`
     });
   });
+
+  return server;
 }
