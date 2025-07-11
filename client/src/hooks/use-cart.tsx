@@ -57,7 +57,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case 'UPDATE_QUANTITY': {
       const { id, quantity } = action.payload;
       if (quantity < 0) return state;
-      
+
       const item = state.items.find(item => item.id === id);
       if (!item) return state;
 
@@ -87,7 +87,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
-  
+
   // Safely get toast function with error handling
   let toastFn: any;
   try {
@@ -136,3 +136,5 @@ export function useCart() {
   }
   return context;
 }
+
+export type { CartItem, CartState };
