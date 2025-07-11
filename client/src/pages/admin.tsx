@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, queryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -9,9 +8,12 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
 
-  // Check if user is admin
-  const { data: currentUser, isLoading: userLoading, error: userError } = useQuery<User | null>({
+  // Check if user is logged in and is admin
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
+    retry: 3, // Increase retry count for better reliability
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 0, // Always fetch fresh data
   });
 
   const { data: users } = useQuery<User[]>({
@@ -30,7 +32,7 @@ export default function AdminDashboard() {
   });
 
   // Loading state
-  if (userLoading) {
+  if (isLoadingUser) {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
