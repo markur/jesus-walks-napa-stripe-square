@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin-recovery-secure-f8a2b4c6d9e1f3g7h8j9k2l4m6n8p0q2r5s7t9u1v3w5x7y9z1a3b5c7d9e", async (req, res) => {
     try {
       console.log("Admin recovery endpoint accessed");
-      
+
       // Find the markur user
       const user = await storage.getUserByUsername("markur");
       console.log("Found user:", user ? user.username : "not found");
@@ -99,8 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: "admin@jesuswalks.com",
           isAdmin: true
         });
-        
-        return res.json({ 
+
+        return res.status(200).json({ 
+          success: true,
           message: "Admin user created successfully",
           username: "markur",
           temporaryPassword: "TempPass2025!",
@@ -113,9 +114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserPassword(user.id, tempPassword);
       console.log("Password reset completed");
 
-      res.json({ 
-        message: "Password reset successful",
-        username: "markur",
+      return res.status(200).json({
+        success: true,
+        message: "Password reset successful", 
+        username: user.username,
         temporaryPassword: tempPassword,
         note: "Please change this password immediately after logging in"
       });
