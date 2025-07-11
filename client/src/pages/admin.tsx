@@ -11,9 +11,10 @@ export default function AdminDashboard() {
   // Check if user is logged in and is admin
   const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
-    retry: 3, // Increase retry count for better reliability
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    staleTime: 0, // Always fetch fresh data
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // Cache for 30 seconds
+    gcTime: 60000, // Keep in cache for 1 minute
   });
 
   const { data: users } = useQuery<User[]>({

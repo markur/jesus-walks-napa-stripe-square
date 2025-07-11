@@ -50,13 +50,12 @@ export default function Login() {
         title: "Login successful!",
         description: isAdmin ? "Welcome to admin dashboard!" : "Welcome back!",
       });
-      // Update auth status and invalidate the query to ensure fresh data
+      // Update auth status immediately
       queryClient.setQueryData(["/api/auth/me"], data.user);
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      // Redirect based on user role with a small delay to show success message
+      // Redirect based on user role
       setTimeout(() => {
         setLocation(isAdmin ? "/admin" : "/");
-      }, 1500); // Increased delay to ensure query update
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
