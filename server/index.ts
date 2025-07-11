@@ -12,6 +12,8 @@ const isProduction = process.env.NODE_ENV === 'production' && !isStaging;
 
 // Check required environment variables only in production
 if (isProduction) {
+  console.log('Production environment detected, checking required environment variables...');
+  
   const requiredEnvVars = [
     { name: 'DATABASE_URL', message: 'Please add a DATABASE_URL secret in your deployment configuration.' },
     { name: 'SESSION_SECRET', message: 'Please add a SESSION_SECRET secret in your deployment configuration.' }
@@ -19,10 +21,15 @@ if (isProduction) {
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar.name]) {
-      console.error(`${envVar.name} is required. ${envVar.message}`);
+      console.error(`MISSING REQUIRED ENV VAR: ${envVar.name} is required. ${envVar.message}`);
+      console.error('Available environment variables:', Object.keys(process.env).filter(key => !key.includes('PATH')));
       process.exit(1);
+    } else {
+      console.log(`✓ ${envVar.name} is configured`);
     }
   }
+  
+  console.log('All required environment variables are present');
 }
 
 const app = express();
@@ -83,29 +90,51 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    console.log('Starting server initialization...');
+    const server = await registerRoutes(app);
+    console.log('Routes registered successfully');
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      
+      console.error('Express error handler caught:', err);
+      res.status(status).json({ message });
+      throw err;
+    });
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    if (app.get("env") === "development") {
+      console.log('Setting up Vite for development...');
+      await setupVite(app, server);
+    } else {
+      console.log('Setting up static file serving for production...');
+      serveStatic(app);
+    }
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      const environment = isStaging ? 'STAGING' : (isProduction ? 'PRODUCTION' : 'DEVELOPMENT');
+      log(`serving on port ${port} - Environment: ${environment}`);
+    });
+  } catch (error) {
+    console.error('FATAL ERROR during server startup:', error);
+    console.error('Error stack:', error.stack);
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    const environment = isStaging ? 'STAGING' : (isProduction ? 'PRODUCTION' : 'DEVELOPMENT');
-    log(`serving on port ${port} - Environment: ${environment}`);
-  });
 })();
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED PROMISE REJECTION at:', promise, 'reason:', reason);
+  process.exit(1);
+});
