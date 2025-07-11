@@ -84,16 +84,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Secure admin recovery route - use long random URL to prevent bot attacks
   app.get("/api/admin-recovery-secure-f8a2b4c6d9e1f3g7h8j9k2l4m6n8p0q2r5s7t9u1v3w5x7y9z1a3b5c7d9e", async (req, res) => {
     try {
+      console.log("Admin recovery endpoint accessed");
+      
       // Find the markur user
       const user = await storage.getUserByUsername("markur");
+      console.log("Found user:", user ? user.username : "not found");
 
       if (!user) {
-        return res.status(404).json({ message: "User 'markur' not found" });
+        console.log("User 'markur' not found, creating admin user");
+        // Create admin user if doesn't exist
+        const newAdmin = await storage.createUser({
+          username: "markur",
+          password: "TempPass2025!",
+          email: "admin@jesuswalks.com",
+          isAdmin: true
+        });
+        
+        return res.json({ 
+          message: "Admin user created successfully",
+          username: "markur",
+          temporaryPassword: "TempPass2025!",
+          note: "Please change this password immediately after logging in"
+        });
       }
 
       // Reset password to a temporary one
       const tempPassword = "TempPass2025!";
       await storage.updateUserPassword(user.id, tempPassword);
+      console.log("Password reset completed");
 
       res.json({ 
         message: "Password reset successful",
@@ -102,7 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         note: "Please change this password immediately after logging in"
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to reset password" });
+      console.error("Admin recovery error:", error);
+      res.status(500).json({ message: "Failed to reset password", error: error.message });
     }
   });
 
