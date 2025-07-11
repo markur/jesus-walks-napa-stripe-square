@@ -28,8 +28,14 @@ import { CreditCard, CheckCircle2 } from "lucide-react";
  * - Verify both payment methods process transactions correctly
  */
 
-// Initialize Stripe with public key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+// Initialize Stripe with public key and error handling
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+const stripePromise = stripePublicKey 
+  ? loadStripe(stripePublicKey).catch(error => {
+      console.error('Failed to load Stripe:', error);
+      return null;
+    })
+  : Promise.resolve(null);
 
 // Test amount for payment validation ($10.00)
 const TEST_AMOUNT = 10.00;

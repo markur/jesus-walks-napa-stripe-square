@@ -24,11 +24,19 @@ import { ApplePayForm } from '@/components/forms/ApplePayForm';
 import { GooglePayForm } from '@/components/forms/GooglePayForm';
 import { CryptoPaymentForm } from '@/components/forms/CryptoPaymentForm';
 
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+// Safely handle Stripe loading with better error handling
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+
+if (!stripePublicKey) {
+  console.warn('Missing VITE_STRIPE_PUBLIC_KEY environment variable');
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePromise = stripePublicKey 
+  ? loadStripe(stripePublicKey).catch(error => {
+      console.error('Failed to load Stripe:', error);
+      return null;
+    })
+  : Promise.resolve(null);
 
 function CheckoutForm() {
   const stripe = useStripe();
@@ -736,6 +744,26 @@ export default function Checkout() {
             <Card>
               <CardContent className="flex justify-center p-4">
                 <Loader2 className="h-8 w-8 animate-spin" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Check if Stripe failed to load
+  if (!stripePublicKey) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-red-500 mb-4">Payment system configuration error</p>
+                <p className="text-sm text-muted-foreground">
+                  Stripe is not properly configured. Please check environment variables.
+                </p>
               </CardContent>
             </Card>
           </div>
