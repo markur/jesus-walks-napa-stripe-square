@@ -1,16 +1,16 @@
 import type { Express } from "express";
+import path from "path";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { insertUserSchema, insertEventSchema, insertRegistrationSchema, insertWaitlistSchema, insertProductSchema, shippingAddressSchema } from "@shared/schema";
 import { z } from "zod";
 import Stripe from "stripe";
-import { shippingService } from "./services/shipping";
-import { generateChatResponse, countTokens } from "./services/openai";
-import { generateClaudeResponse, countClaudeTokens } from "./services/anthropic";
-import { generateGeminiResponse, countGeminiTokens } from "./services/gemini";
+import { shippingService } from "./services/shipping.js";
+import { generateChatResponse, countTokens } from "./services/openai.js";
+import { generateClaudeResponse, countClaudeTokens } from "./services/anthropic.js";
+import { generateGeminiResponse, countGeminiTokens } from "./services/gemini.js";
 import multer from "multer";
 import fs from "fs";
-import path from "path";
 import { promisify } from "util";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apple Pay configuration endpoint
   app.get("/api/apple-pay/config", (req, res) => {
     try {
-      const { getApplePayConfig } = require('./services/mobile-payments');
+      const { getApplePayConfig } = require('./services/mobile-payments.js');
       res.json(getApplePayConfig());
     } catch (error: any) {
       console.error('Apple Pay config error:', error);
@@ -619,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Pay configuration endpoint
   app.get("/api/google-pay/config", (req, res) => {
     try {
-      const { getGooglePayConfig } = require('./services/mobile-payments');
+      const { getGooglePayConfig } = require('./services/mobile-payments.js');
       res.json(getGooglePayConfig());
     } catch (error: any) {
       console.error('Google Pay config error:', error);
@@ -633,7 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apple Pay payment processing endpoint
   app.post("/api/apple-pay/process-payment", async (req, res) => {
     try {
-      const { processApplePayPayment } = require('./services/mobile-payments');
+      const { processApplePayPayment } = require('./services/mobile-payments.js');
       const result = await processApplePayPayment(req.body);
       res.json(result);
     } catch (error: any) {
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Pay payment processing endpoint
   app.post("/api/google-pay/process-payment", async (req, res) => {
     try {
-      const { processGooglePayPayment } = require('./services/mobile-payments');
+      const { processGooglePayPayment } = require('./services/mobile-payments.js');
       const result = await processGooglePayPayment(req.body);
       res.json(result);
     } catch (error: any) {
@@ -663,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crypto exchange rates endpoint
   app.get("/api/crypto/exchange-rates", async (req, res) => {
     try {
-      const { getCryptoExchangeRates } = await import('./services/crypto-payments');
+      const { getCryptoExchangeRates } = await import('./services/crypto-payments.js');
       const currency = req.query.currency as string || 'USD';
       const rates = await getCryptoExchangeRates(currency);
       res.json(rates);
@@ -679,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe crypto payment endpoint
   app.post("/api/crypto/stripe/process-payment", async (req, res) => {
     try {
-      const { processStripeCryptoPayment } = await import('./services/crypto-payments');
+      const { processStripeCryptoPayment } = await import('./services/crypto-payments.js');
       const result = await processStripeCryptoPayment(req.body);
       res.json(result);
     } catch (error: any) {
@@ -700,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Coinbase crypto payment endpoint
   app.post("/api/crypto/coinbase/process-payment", async (req, res) => {
     try {
-      const { processCoinbaseCryptoPayment } = await import('./services/crypto-payments');
+      const { processCoinbaseCryptoPayment } = await import('./services/crypto-payments.js');
       const result = await processCoinbaseCryptoPayment(req.body);
       res.json(result);
     } catch (error: any) {
@@ -715,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crypto payment verification endpoint
   app.post("/api/crypto/verify-payment", async (req, res) => {
     try {
-      const { verifyCryptoPayment } = await import('./services/crypto-payments');
+      const { verifyCryptoPayment } = await import('./services/crypto-payments.js');
       const { paymentId, provider } = req.body;
       const result = await verifyCryptoPayment(paymentId, provider);
       res.json(result);
@@ -741,5 +741,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  return server;
+  // Catch-all route to serve React app for client-side routing
+  // This MUST be the last route to avoid interfering with API routes
+  app.get("*", (req, res) => {
+    // Skip API routes and static assets
+    if (req.path.startsWith('/api/') || 
+        req.path.startsWith('/uploads/') || 
+        req.path.includes('.')) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    // Serve the main React app HTML file for all other routes
+    res.sendFile(path.join(process.cwd(), 'client/index.html'));
+  });
+
+  } catch (error) {
+    console.error("Error setting up routes:", error);
+    throw error;
+  }
 }
