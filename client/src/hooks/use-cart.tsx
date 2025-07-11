@@ -87,14 +87,27 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
-  const { toast } = useToast();
+  
+  // Safely get toast function with error handling
+  let toastFn: any;
+  try {
+    const { toast } = useToast();
+    toastFn = toast;
+  } catch (error) {
+    console.warn('Toast not available:', error);
+    toastFn = () => {}; // No-op function as fallback
+  }
 
   const addItem = (product: Product) => {
     dispatch({ type: 'ADD_ITEM', payload: product });
-    toast({
-      title: 'Added to cart',
-      description: `${product.name} has been added to your cart.`,
-    });
+    try {
+      toastFn({
+        title: 'Added to cart',
+        description: `${product.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      console.warn('Failed to show toast:', error);
+    }
   };
 
   const removeItem = (productId: number) => {
