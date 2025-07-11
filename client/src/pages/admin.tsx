@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   // Check if user is admin
-  const { data: currentUser } = useQuery<User | null>({
+  const { data: currentUser, isLoading: userLoading, error: userError } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
   });
 
@@ -29,12 +29,66 @@ export default function AdminDashboard() {
     enabled: currentUser?.isAdmin,
   });
 
-  if (!currentUser?.isAdmin) {
+  // Loading state
+  if (userLoading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <h1>Loading...</h1>
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (userError) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <h1>Authentication Error</h1>
+          <p>Please try logging in again.</p>
+          <button 
+            style={styles.actionButton}
+            onClick={() => window.location.href = '/login'}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in or not admin
+  if (!currentUser) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <h1>Please Log In</h1>
+          <p>You need to be logged in to access the admin dashboard.</p>
+          <button 
+            style={styles.actionButton}
+            onClick={() => window.location.href = '/login'}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser.isAdmin) {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
           <h1>Access Denied</h1>
           <p>You don't have admin privileges.</p>
+          <button 
+            style={styles.actionButton}
+            onClick={() => window.location.href = '/'}
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
