@@ -41,19 +41,37 @@ export default function Login() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Received non-JSON response:", text);
-        throw new Error("Server returned an invalid response");
-      }
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+        const contentType = response.headers.get("content-type");
+        
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          console.error("Received non-JSON response:", text);
+          throw new Error("Server error: Expected JSON response but received HTML");
+        }
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || `Login failed with status ${response.status}`);
+        }
+
+        return responseData;
+      } catch (error) {
+        console.error("Login request error:", error);
+        if (error instanceof SyntaxError) {
+          throw new Error("Server returned invalid response format");
+        }
+        throw error;
       }
-      return response.json();
     },
     onSuccess: async (data) => {
       const isAdmin = data.user.isAdmin;
