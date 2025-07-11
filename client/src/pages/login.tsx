@@ -41,8 +41,19 @@ export default function Login() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const res = await apiRequest("POST", "/api/auth/login", data);
-      return res.json();
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Received non-JSON response:", text);
+        throw new Error("Server returned an invalid response");
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+      return response.json();
     },
     onSuccess: async (data) => {
       const isAdmin = data.user.isAdmin;
@@ -58,6 +69,7 @@ export default function Login() {
       }, 1000);
     },
     onError: (error: Error) => {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Please check your credentials and try again.",
@@ -65,6 +77,11 @@ export default function Login() {
       });
     },
   });
+
+  const onSubmit = (data: { username: string; password: string }) => {
+    console.log("Attempting login for:", data.username);
+    mutate(data);
+  };
 
   return (
     <MainLayout>
@@ -76,7 +93,7 @@ export default function Login() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => mutate(data))} className="space-y-4">
+                <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="username"
