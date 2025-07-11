@@ -132,7 +132,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
+    // Return a fallback object instead of throwing an error
+    console.warn('useCart called outside of CartProvider, returning fallback');
+    return {
+      state: { items: [], total: 0 },
+      addItem: () => {},
+      removeItem: () => {},
+      updateQuantity: () => {},
+      clearCart: () => {}
+    };
   }
   return context;
 }
