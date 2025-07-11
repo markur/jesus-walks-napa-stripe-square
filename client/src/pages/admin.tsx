@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, queryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -6,34 +7,43 @@ import type { User, Order, Product } from '@shared/schema';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [authChecked, setAuthChecked] = useState(false);
   const { toast } = useToast();
 
-  // Check if user is logged in and is admin
-  const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User | null>({
+  // Check if user is logged in and is admin with better error handling
+  const { data: currentUser, isLoading: isLoadingUser, error: userError, isError } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
-    retry: 1,
+    retry: 2,
     refetchOnWindowFocus: false,
-    staleTime: 30000, // Cache for 30 seconds
-    gcTime: 60000, // Keep in cache for 1 minute
+    staleTime: 10000, // Cache for 10 seconds
+    gcTime: 30000, // Keep in cache for 30 seconds
+    refetchInterval: false,
   });
+
+  // Mark auth as checked after first load attempt
+  useEffect(() => {
+    if (!isLoadingUser) {
+      setAuthChecked(true);
+    }
+  }, [isLoadingUser]);
 
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: currentUser?.isAdmin,
+    enabled: currentUser?.isAdmin === true,
   });
 
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
-    enabled: currentUser?.isAdmin,
+    enabled: currentUser?.isAdmin === true,
   });
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    enabled: currentUser?.isAdmin,
+    enabled: currentUser?.isAdmin === true,
   });
 
-  // Loading state
-  if (isLoadingUser) {
+  // Show loading only for initial auth check
+  if (isLoadingUser && !authChecked) {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
@@ -44,16 +54,21 @@ export default function AdminDashboard() {
     );
   }
 
-  // Error state
-  if (userError) {
+  // Handle authentication errors
+  if (isError || userError) {
+    console.error('Authentication error:', userError);
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
           <h1>Authentication Error</h1>
-          <p>Please try logging in again.</p>
+          <p>There was a problem checking your authentication status.</p>
           <button 
             style={styles.actionButton}
-            onClick={() => window.location.href = '/login'}
+            onClick={() => {
+              // Clear auth cache and redirect to login
+              queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
+              window.location.href = '/login';
+            }}
           >
             Go to Login
           </button>
@@ -62,8 +77,8 @@ export default function AdminDashboard() {
     );
   }
 
-  // Not logged in or not admin
-  if (!currentUser) {
+  // Not logged in
+  if (authChecked && !currentUser) {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
@@ -80,7 +95,8 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!currentUser.isAdmin) {
+  // Not admin
+  if (authChecked && currentUser && !currentUser.isAdmin) {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
@@ -92,6 +108,18 @@ export default function AdminDashboard() {
           >
             Go Home
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If we're still loading user data but auth is checked, show minimal loading
+  if (!currentUser && authChecked) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <h1>Loading user data...</h1>
+          <p>Please wait a moment.</p>
         </div>
       </div>
     );
@@ -224,7 +252,7 @@ export default function AdminDashboard() {
       <div style={styles.header}>
         <h1>Admin Dashboard</h1>
         <div style={styles.userInfo}>
-          Welcome, {currentUser.username}
+          Welcome, {currentUser?.username || 'Admin'}
         </div>
       </div>
 
