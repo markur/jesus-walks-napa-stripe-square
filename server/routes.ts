@@ -755,8 +755,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(process.cwd(), 'client/index.html'));
   });
 
-  } catch (error) {
-    console.error("Error setting up routes:", error);
-    throw error;
-  }
+  return server;
 }
