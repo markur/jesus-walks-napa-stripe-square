@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, queryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { User, Order, Product } from '@shared/schema';
 
