@@ -148,9 +148,249 @@ export default function AdminDashboard() {
     </div>
   );
 
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      return apiRequest('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Password changed successfully" });
+      setShowPasswordForm(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to change password",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Add user mutation
+  const addUserMutation = useMutation({
+    mutationFn: async (userData: { username: string; email: string; password: string; isAdmin: boolean }) => {
+      return apiRequest('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setShowAddUserForm(false);
+      setNewUserForm({ username: '', email: '', password: '', confirmPassword: '', isAdmin: false });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create user",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // State for forms
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [newUserForm, setNewUserForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    isAdmin: false
+  });
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    });
+  };
+
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newUserForm.password !== newUserForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    if (newUserForm.password.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    addUserMutation.mutate({
+      username: newUserForm.username,
+      email: newUserForm.email,
+      password: newUserForm.password,
+      isAdmin: newUserForm.isAdmin
+    });
+  };
+
   const renderUsers = () => (
     <div style={styles.tableContainer}>
-      <h2>Users Management</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+        <h2>Users Management</h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            style={styles.actionButton}
+            onClick={() => setShowPasswordForm(true)}
+          >
+            Change My Password
+          </button>
+          <button 
+            style={styles.actionButton}
+            onClick={() => setShowAddUserForm(true)}
+          >
+            Add New User
+          </button>
+        </div>
+      </div>
+
+      {/* Password Change Form */}
+      {showPasswordForm && (
+        <div style={styles.formOverlay}>
+          <div style={styles.formContainer}>
+            <h3>Change Password</h3>
+            <form onSubmit={handlePasswordChange}>
+              <div style={styles.formGroup}>
+                <label>Current Password:</label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>New Password:</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Confirm New Password:</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formButtons}>
+                <button type="submit" style={styles.actionButton} disabled={changePasswordMutation.isPending}>
+                  {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+                </button>
+                <button 
+                  type="button" 
+                  style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                  onClick={() => setShowPasswordForm(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Form */}
+      {showAddUserForm && (
+        <div style={styles.formOverlay}>
+          <div style={styles.formContainer}>
+            <h3>Add New User</h3>
+            <form onSubmit={handleAddUser}>
+              <div style={styles.formGroup}>
+                <label>Username:</label>
+                <input
+                  type="text"
+                  value={newUserForm.username}
+                  onChange={(e) => setNewUserForm(prev => ({ ...prev, username: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Email:</label>
+                <input
+                  type="email"
+                  value={newUserForm.email}
+                  onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Password:</label>
+                <input
+                  type="password"
+                  value={newUserForm.password}
+                  onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Confirm Password:</label>
+                <input
+                  type="password"
+                  value={newUserForm.confirmPassword}
+                  onChange={(e) => setNewUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={newUserForm.isAdmin}
+                    onChange={(e) => setNewUserForm(prev => ({ ...prev, isAdmin: e.target.checked }))}
+                  />
+                  Admin User
+                </label>
+              </div>
+              <div style={styles.formButtons}>
+                <button type="submit" style={styles.actionButton} disabled={addUserMutation.isPending}>
+                  {addUserMutation.isPending ? 'Creating...' : 'Create User'}
+                </button>
+                <button 
+                  type="button" 
+                  style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                  onClick={() => setShowAddUserForm(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -159,6 +399,7 @@ export default function AdminDashboard() {
             <th style={styles.th}>Email</th>
             <th style={styles.th}>Admin</th>
             <th style={styles.th}>Verified</th>
+            <th style={styles.th}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -169,6 +410,9 @@ export default function AdminDashboard() {
               <td style={styles.td}>{user.email}</td>
               <td style={styles.td}>{user.isAdmin ? '✅' : '❌'}</td>
               <td style={styles.td}>{user.isVerified ? '✅' : '❌'}</td>
+              <td style={styles.td}>
+                <button style={styles.actionButton}>Edit</button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -398,5 +642,42 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
     textAlign: 'center' as const,
     margin: '2rem',
+  },
+  formOverlay: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  formContainer: {
+    backgroundColor: 'white',
+    padding: '2rem',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    minWidth: '400px',
+    maxWidth: '500px',
+  },
+  formGroup: {
+    marginBottom: '1rem',
+  },
+  formInput: {
+    width: '100%',
+    padding: '0.5rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '0.25rem',
+    fontSize: '0.875rem',
+    marginTop: '0.25rem',
+  },
+  formButtons: {
+    display: 'flex',
+    gap: '0.5rem',
+    justifyContent: 'flex-end',
+    marginTop: '1.5rem',
   },
 };
