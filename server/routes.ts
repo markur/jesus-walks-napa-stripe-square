@@ -741,19 +741,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Catch-all route to serve React app for client-side routing
-  // This MUST be the last route to avoid interfering with API routes
-  app.get("*", (req, res) => {
-    // Skip API routes and static assets
-    if (req.path.startsWith('/api/') || 
-        req.path.startsWith('/uploads/') || 
-        req.path.includes('.')) {
-      return res.status(404).json({ message: "Not found" });
-    }
-
-    // Serve the main React app HTML file for all other routes
-    res.sendFile(path.join(process.cwd(), 'client/index.html'));
-  });
+  // Note: Catch-all routing is now handled by Vite middleware in development
+  // and by serveStatic in production
 
   return server;
 }

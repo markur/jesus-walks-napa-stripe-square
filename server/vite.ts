@@ -39,7 +39,8 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        // Don't exit process on Vite errors in development
+        console.error('Vite error:', msg);
       },
     },
     server: serverOptions,
@@ -47,8 +48,17 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  
+  // Handle client-side routing - serve index.html for non-API routes
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+
+    // Skip API routes and static assets
+    if (url.startsWith('/api/') || 
+        url.startsWith('/uploads/') || 
+        url.includes('.') && !url.endsWith('/')) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
@@ -58,16 +68,16 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
+      // Read and process the HTML template
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${generateId()}"`,
-      );
+      
+      // Transform the HTML through Vite for HMR and module resolution
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      
+      res.status(200).set({ "Content-Type": "text/html" }).send(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
+      console.error('Error serving HTML:', e);
       next(e);
     }
   });

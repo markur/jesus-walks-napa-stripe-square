@@ -112,19 +112,7 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const port = 5000;
-    
-    // Handle port conflicts more gracefully
-    server.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use. Trying to find and kill conflicting process...`);
-        process.exit(1);
-      } else {
-        console.error('Server error:', error);
-        process.exit(1);
-      }
-    });
-
+    const port = 3000;
     server.listen({
       port,
       host: "0.0.0.0",
