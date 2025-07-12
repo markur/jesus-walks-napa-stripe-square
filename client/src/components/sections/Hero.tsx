@@ -31,7 +31,7 @@ export function Hero() {
               </Button>
             </Link>
             <Link href="/events">
-              <Button variant="outline" size="lg" className="text-lg w-full sm:w-auto text-white border-white hover:bg-white/10">
+              <Button variant="outline" size="lg" className="text-lg w-full sm:w-auto text-white border-white bg-white/40 hover:bg-white/60">
                 View Events
               </Button>
             </Link>
