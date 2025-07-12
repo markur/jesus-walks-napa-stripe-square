@@ -81,8 +81,8 @@ const writeFileAsync = promisify(fs.writeFile);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
-  // Secure admin recovery route - use long random URL to prevent bot attacks
-  app.get("/api/admin-recovery-secure-f8a2b4c6d9e1f3g7h8j9k2l4m6n8p0q2r5s7t9u1v3w5x7y9z1a3b5c7d9e", async (req, res) => {
+  // Simple admin recovery route for development
+  app.get("/api/admin-recovery", async (req, res) => {
     try {
       console.log("Admin recovery endpoint accessed");
 
@@ -162,6 +162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log(`Login attempt for username: ${username}`);
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
       const user = await storage.getUserByUsername(username);
 
       if (!user) {
@@ -169,15 +174,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      if (user.password !== password) { // Note: In production, use proper password hashing
+      if (user.password !== password) {
         console.log(`Login failed: Password mismatch for ${username}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Set session
       req.session.userId = user.id;
+      
+      // Save session before responding
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve(true);
+        });
+      });
+
       console.log(`Login successful for ${username} (User ID: ${user.id}, Admin: ${user.isAdmin})`);
       console.log(`Session ID: ${req.session.id}`);
-      res.json({ user });
+      
+      res.json({ 
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          isAdmin: user.isAdmin
+        }
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Failed to login", error: error.message });
