@@ -252,6 +252,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin manual order creation
+  app.post("/api/admin/create-order", requireAdmin, async (req, res) => {
+    try {
+      const { userId, items, total, shippingAddress, status = 'pending' } = req.body;
+
+      if (!userId || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Invalid order data" });
+      }
+
+      // Verify user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify products exist and have sufficient stock
+      for (const item of items) {
+        const product = await storage.getProduct(item.productId);
+        if (!product) {
+          return res.status(404).json({ message: `Product ${item.productId} not found` });
+        }
+        if (product.stock < item.quantity) {
+          return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        }
+      }
+
+      // Create the order
+      const order = await storage.createOrder({
+        userId,
+        status,
+        total,
+        shippingAddress,
+        items
+      });
+
+      // Update product stock
+      for (const item of items) {
+        await storage.updateProductStock(item.productId, -item.quantity);
+      }
+
+      res.status(201).json({ 
+        message: "Order created successfully", 
+        order 
+      });
+    } catch (error) {
+      console.error("Admin order creation error:", error);
+      res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
   app.get("/api/orders", requireAdmin, async (_req, res) => {
     try {
       const orders = await storage.getAllOrders();

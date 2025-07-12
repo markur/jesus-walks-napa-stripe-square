@@ -1,7 +1,7 @@
 import { users, events, registrations, waitlist, products, orders, orderItems, modelConfigs, conversations, messages } from "@shared/schema";
 import type { User, Event, Registration, Waitlist, Product, Order, OrderItem, InsertUser, InsertEvent, InsertRegistration, InsertWaitlist, InsertProduct, InsertOrder, InsertOrderItem, ModelConfig, InsertModelConfig, Conversation, InsertConversation, Message, InsertMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
@@ -175,9 +175,25 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(orders).where(eq(orders.userId, userId));
   }
 
-  async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
-    return newOrder;
+  async createOrder(orderData: any): Promise<any> {
+    const { items, ...orderInfo } = orderData;
+
+    // Create the order
+    const [order] = await db.insert(orders).values(orderInfo).returning();
+
+    // Create order items
+    if (items && items.length > 0) {
+      const orderItemsData = items.map((item: any) => ({
+        orderId: order.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price
+      }));
+
+      await db.insert(orderItems).values(orderItemsData);
+    }
+
+    return order;
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {

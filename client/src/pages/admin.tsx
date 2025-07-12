@@ -27,9 +27,11 @@ export default function AdminDashboard() {
     }
   }, [isLoadingUser]);
 
-  const { data: users } = useQuery<User[]>({
+  const { data: users, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     enabled: currentUser?.isAdmin === true,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   });
 
   const { data: orders } = useQuery<Order[]>({
@@ -170,6 +172,19 @@ export default function AdminDashboard() {
     },
   });
 
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/auth/logout', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      window.location.href = '/login';
+    },
+  });
+
   // Add user mutation
   const addUserMutation = useMutation({
     mutationFn: async (userData: { username: string; email: string; password: string; isAdmin: boolean }) => {
@@ -181,6 +196,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       toast({ title: "Success", description: "User created successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      refetchUsers(); // Force refresh
       setShowAddUserForm(false);
       setNewUserForm({ username: '', email: '', password: '', confirmPassword: '', isAdmin: false });
     },
@@ -207,6 +223,57 @@ export default function AdminDashboard() {
     password: '',
     confirmPassword: '',
     isAdmin: false
+  });
+
+  // Order creation state
+  const [showCreateOrderForm, setShowCreateOrderForm] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    userId: '',
+    productId: '',
+    quantity: 1,
+    shippingAddress: {
+      fullName: '',
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US'
+    }
+  });
+
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      return apiRequest('/api/admin/create-order', {
+        method: 'POST',
+        body: JSON.stringify(orderData),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Order created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setShowCreateOrderForm(false);
+      setOrderForm({
+        userId: '',
+        productId: '',
+        quantity: 1,
+        shippingAddress: {
+          fullName: '',
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'US'
+        }
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create order",
+        variant: "destructive" 
+      });
+    },
   });
 
   const handlePasswordChange = (e: React.FormEvent) => {
@@ -240,6 +307,38 @@ export default function AdminDashboard() {
       email: newUserForm.email,
       password: newUserForm.password,
       isAdmin: newUserForm.isAdmin
+    });
+  };
+
+  const handleCreateOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderForm.userId || !orderForm.productId) {
+      toast({ title: "Error", description: "Please select both user and product", variant: "destructive" });
+      return;
+    }
+    if (orderForm.quantity < 1) {
+      toast({ title: "Error", description: "Quantity must be at least 1", variant: "destructive" });
+      return;
+    }
+    
+    const selectedProduct = products?.find(p => p.id.toString() === orderForm.productId);
+    if (!selectedProduct) {
+      toast({ title: "Error", description: "Selected product not found", variant: "destructive" });
+      return;
+    }
+
+    const total = Number(selectedProduct.price) * orderForm.quantity;
+
+    createOrderMutation.mutate({
+      userId: parseInt(orderForm.userId),
+      items: [{
+        productId: parseInt(orderForm.productId),
+        quantity: orderForm.quantity,
+        price: selectedProduct.price
+      }],
+      total: total.toFixed(2),
+      shippingAddress: orderForm.shippingAddress,
+      status: 'pending'
     });
   };
 
@@ -491,17 +590,196 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const renderCreateOrder = () => (
+    <div style={styles.tableContainer}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+        <h2>Create Manual Order</h2>
+        <button 
+          style={styles.actionButton}
+          onClick={() => setShowCreateOrderForm(true)}
+        >
+          Create New Order
+        </button>
+      </div>
+
+      {/* Create Order Form */}
+      {showCreateOrderForm && (
+        <div style={styles.formOverlay}>
+          <div style={{ ...styles.formContainer, minWidth: '600px' }}>
+            <h3>Create Order for Customer</h3>
+            <form onSubmit={handleCreateOrder}>
+              <div style={styles.formGroup}>
+                <label>Select Customer:</label>
+                <select
+                  value={orderForm.userId}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, userId: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                >
+                  <option value="">Choose a customer...</option>
+                  {users?.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.username} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label>Select Product:</label>
+                <select
+                  value={orderForm.productId}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, productId: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                >
+                  <option value="">Choose a product...</option>
+                  {products?.map(product => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - ${Number(product.price).toFixed(2)} (Stock: {product.stock})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label>Quantity:</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={orderForm.quantity}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ marginBottom: '0.5rem' }}>Shipping Address:</h4>
+                <div style={styles.formGroup}>
+                  <label>Full Name:</label>
+                  <input
+                    type="text"
+                    value={orderForm.shippingAddress.fullName}
+                    onChange={(e) => setOrderForm(prev => ({ 
+                      ...prev, 
+                      shippingAddress: { ...prev.shippingAddress, fullName: e.target.value }
+                    }))}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label>Street Address:</label>
+                  <input
+                    type="text"
+                    value={orderForm.shippingAddress.street}
+                    onChange={(e) => setOrderForm(prev => ({ 
+                      ...prev, 
+                      shippingAddress: { ...prev.shippingAddress, street: e.target.value }
+                    }))}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                  <div style={styles.formGroup}>
+                    <label>City:</label>
+                    <input
+                      type="text"
+                      value={orderForm.shippingAddress.city}
+                      onChange={(e) => setOrderForm(prev => ({ 
+                        ...prev, 
+                        shippingAddress: { ...prev.shippingAddress, city: e.target.value }
+                      }))}
+                      style={styles.formInput}
+                      required
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label>State:</label>
+                    <input
+                      type="text"
+                      value={orderForm.shippingAddress.state}
+                      onChange={(e) => setOrderForm(prev => ({ 
+                        ...prev, 
+                        shippingAddress: { ...prev.shippingAddress, state: e.target.value }
+                      }))}
+                      style={styles.formInput}
+                      required
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label>Zip Code:</label>
+                    <input
+                      type="text"
+                      value={orderForm.shippingAddress.zipCode}
+                      onChange={(e) => setOrderForm(prev => ({ 
+                        ...prev, 
+                        shippingAddress: { ...prev.shippingAddress, zipCode: e.target.value }
+                      }))}
+                      style={styles.formInput}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {orderForm.productId && (
+                <div style={{ ...styles.formGroup, backgroundColor: '#f3f4f6', padding: '1rem', borderRadius: '0.25rem' }}>
+                  <strong>Order Summary:</strong>
+                  <div>Product: {products?.find(p => p.id.toString() === orderForm.productId)?.name}</div>
+                  <div>Quantity: {orderForm.quantity}</div>
+                  <div>Total: ${(Number(products?.find(p => p.id.toString() === orderForm.productId)?.price || 0) * orderForm.quantity).toFixed(2)}</div>
+                </div>
+              )}
+
+              <div style={styles.formButtons}>
+                <button type="submit" style={styles.actionButton} disabled={createOrderMutation.isPending}>
+                  {createOrderMutation.isPending ? 'Creating...' : 'Create Order'}
+                </button>
+                <button 
+                  type="button" 
+                  style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                  onClick={() => setShowCreateOrderForm(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: '1rem' }}>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+          Use this feature to manually create orders for customers. This is useful for phone orders, 
+          special requests, or testing purposes.
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h1>Admin Dashboard</h1>
-        <div style={styles.userInfo}>
-          Welcome, {currentUser?.username || 'Admin'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={styles.userInfo}>
+            Welcome, {currentUser?.username || 'Admin'}
+          </div>
+          <button 
+            style={styles.logoutButton}
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+          </button>
         </div>
       </div>
 
       <div style={styles.nav}>
-        {['overview', 'users', 'orders', 'products'].map(tab => (
+        {['overview', 'users', 'orders', 'products', 'create-order'].map(tab => (
           <button
             key={tab}
             style={{
@@ -511,7 +789,7 @@ export default function AdminDashboard() {
             }}
             onClick={() => setActiveTab(tab)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'create-order' ? 'Create Order' : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
@@ -521,6 +799,7 @@ export default function AdminDashboard() {
         {activeTab === 'users' && renderUsers()}
         {activeTab === 'orders' && renderOrders()}
         {activeTab === 'products' && renderProducts()}
+        {activeTab === 'create-order' && renderCreateOrder()}
       </div>
     </div>
   );
@@ -679,5 +958,15 @@ const styles = {
     gap: '0.5rem',
     justifyContent: 'flex-end',
     marginTop: '1.5rem',
+  },
+  logoutButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '0.25rem',
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    fontWeight: '500',
   },
 };
