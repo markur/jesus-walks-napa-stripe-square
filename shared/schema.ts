@@ -20,11 +20,11 @@ export const users = pgTable("users", {
   country: text("country"),
   profilePicture: text("profile_picture"),
   notes: text("notes"),
-  socialProfiles: jsonb("social_profiles"), // {facebook: "", instagram: "", twitter: "", linkedin: "", github: "", youtube: "", discord: "", whatsapp: "", telegram: "", signal: "", website: "", company: ""}
+  socialProfiles: jsonb("social_profiles"),
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const events = pgTable("events", {
