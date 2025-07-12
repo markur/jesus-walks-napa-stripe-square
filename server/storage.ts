@@ -3,7 +3,7 @@ import type { User, Event, Registration, Waitlist, Product, Order, OrderItem, In
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
+import connectPgSimple from "connect-pgSimple";
 import { pool } from "./db";
 
 export interface IStorage {
@@ -217,7 +217,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    console.log('Fetching all users from database...');
+    const users = await db.select().from(users);
+    console.log('Raw users from DB:', users.length);
+    const sanitizedUsers = users.map(user => ({
+      ...user,
+      password: undefined // Don't return password
+    }));
+    console.log('Sanitized users:', sanitizedUsers.length);
+    return sanitizedUsers;
   }
 
   async getAllOrders(): Promise<Order[]> {
@@ -326,7 +334,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.resetToken, token));
-    
+
     if (!user || !user.resetTokenExpiry) {
       return undefined;
     }

@@ -528,7 +528,8 @@ export default function AdminDashboard() {
         </tbody>
       </table>
     </div>
-  );
+    );
+  };
 
   const renderOrders = () => (
     <div style={styles.tableContainer}>
