@@ -1,3 +1,4 @@
+
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
@@ -6,7 +7,6 @@ import { migrate } from 'drizzle-orm/neon-serverless/migrator';
 
 neonConfig.webSocketConstructor = ws;
 
-// Initialize Neon client
 async function runMigration() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
@@ -28,4 +28,4 @@ async function runMigration() {
   }
 }
 
-runMigration();
+runMigration().catch(console.error);
