@@ -1,4 +1,42 @@
-<!DOCTYPE html>
+node -e "
+import('./server/db.ts').then(({ pool }) => {
+  pool.query('SELECT id, username, email, is_admin FROM users')
+    .then(result => {
+      console.log('All users:');
+      console.table(result.rows);
+      pool.end();
+    })
+    .catch(err => { 
+      console.error('Error:', err.message); 
+      pool.end(); 
+    });
+});
+"npm run db:migrate// Inside your existing component or functionality that queries the database
+import('./server/db.ts').then(({ pool }) => {
+  pool.query('SELECT id, username, email, is_admin FROM users')
+    .then(result => {
+      // Log results here, not in the UI
+      console.log('Users fetched:', result.rows);
+      pool.end();
+    })
+    .catch(err => {
+      console.error('Database query failed:', err.message);
+      // Consider returning a default/fallback state if this is part of a React state
+      pool.end();
+    });
+});<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Jesus Walks Napa</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html><!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
