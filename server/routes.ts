@@ -240,6 +240,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Forgot password - send reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.json({ message: "If this email exists, you will receive a password reset link." });
+      }
+
+      // Generate reset token
+      const resetToken = Math.random().toString(36).substr(2, 15) + Date.now().toString(36);
+      const resetExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+      // Store reset token in database
+      await storage.setPasswordResetToken(user.id, resetToken, resetExpiry);
+
+      // In a real app, you would send an email here
+      // For now, we'll log the reset link
+      console.log(`Password reset link for ${email}: /reset-password?token=${resetToken}`);
+
+      res.json({ 
+        message: "If this email exists, you will receive a password reset link.",
+        // For development only - remove in production
+        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      // Verify token
+      const user = await storage.getUserByResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Update password and clear reset token
+      await storage.updateUserPassword(user.id, newPassword);
+      await storage.clearPasswordResetToken(user.id);
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Check if username or email exists (for signup validation)
+  app.post("/api/auth/check-availability", async (req, res) => {
+    try {
+      const { username, email } = req.body;
+      
+      const result = {
+        usernameAvailable: true,
+        emailAvailable: true,
+        suggestions: []
+      };
+
+      if (username) {
+        const existingUser = await storage.getUserByUsername(username);
+        result.usernameAvailable = !existingUser;
+      }
+
+      if (email) {
+        const existingEmail = await storage.getUserByEmail(email);
+        result.emailAvailable = !existingEmail;
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Check availability error:", error);
+      res.status(500).json({ message: "Failed to check availability" });
+    }
+  });
+
   // Keep existing routes simple
 
   // Admin routes

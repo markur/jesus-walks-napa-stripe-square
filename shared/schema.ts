@@ -21,6 +21,8 @@ export const users = pgTable("users", {
   profilePicture: text("profile_picture"),
   notes: text("notes"),
   socialProfiles: jsonb("social_profiles"), // {facebook: "", instagram: "", twitter: "", linkedin: "", github: "", youtube: "", discord: "", whatsapp: "", telegram: "", signal: "", website: "", company: ""}
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

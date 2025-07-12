@@ -9,7 +9,7 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import type { User } from "@shared/schema";
 
 const loginSchema = z.object({
@@ -143,6 +143,13 @@ export default function Login() {
                   </Button>
                 </form>
               </Form>
+              <div className="text-center mt-4">
+                <Link href="/forgot-password">
+                  <Button variant="link" className="text-sm">
+                    Forgot your password?
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

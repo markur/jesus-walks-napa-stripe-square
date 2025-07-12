@@ -309,6 +309,48 @@ export class DatabaseStorage implements IStorage {
 
     return updatedUser[0];
   }
+
+  async setPasswordResetToken(userId: number, token: string, expiry: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        resetToken: token,
+        resetTokenExpiry: expiry,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.resetToken, token));
+    
+    if (!user || !user.resetTokenExpiry) {
+      return undefined;
+    }
+
+    // Check if token is expired
+    if (new Date() > user.resetTokenExpiry) {
+      // Clear expired token
+      await this.clearPasswordResetToken(user.id);
+      return undefined;
+    }
+
+    return user;
+  }
+
+  async clearPasswordResetToken(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        resetToken: null,
+        resetTokenExpiry: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
 }
 
 export const storage = new DatabaseStorage();
