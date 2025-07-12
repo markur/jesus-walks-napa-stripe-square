@@ -1,7 +1,7 @@
 
-const { storage } = require('./server/storage.js');
-const { db } = require('./server/db.js');
-const { users } = require('./shared/schema.js');
+import { storage } from './server/storage.js';
+import { db } from './server/db.js';
+import { users } from './shared/schema.js';
 
 async function resetAdmin() {
   try {
