@@ -1,7 +1,12 @@
 
-import { pool } from './server/db.js';
-import { storage } from './server/storage.js';
+import pkg from 'pg';
+const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
+
+// Create database connection using environment variable
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/your_db_name',
+});
 
 async function resetDatabase() {
   const client = await pool.connect();
@@ -56,6 +61,7 @@ async function resetDatabase() {
     throw error;
   } finally {
     client.release();
+    await pool.end();
   }
 }
 
