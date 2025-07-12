@@ -20,7 +20,7 @@ export const users = pgTable("users", {
   country: text("country"),
   profilePicture: text("profile_picture"),
   notes: text("notes"),
-  socialProfiles: jsonb("social_profiles"), // {facebook: "", instagram: "", twitter: "", linkedin: "", website: ""}
+  socialProfiles: jsonb("social_profiles"), // {facebook: "", instagram: "", twitter: "", linkedin: "", github: "", youtube: "", discord: "", whatsapp: "", telegram: "", signal: "", website: "", company: ""}
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -137,7 +137,14 @@ export const updateUserProfileSchema = createInsertSchema(users).pick({
     instagram: z.string().optional(),
     twitter: z.string().optional(),
     linkedin: z.string().optional(),
+    github: z.string().optional(),
+    youtube: z.string().optional(),
+    discord: z.string().optional(),
+    whatsapp: z.string().optional(),
+    telegram: z.string().optional(),
+    signal: z.string().optional(),
     website: z.string().url().optional().or(z.literal("")),
+    company: z.string().optional(),
   }).optional(),
 });
 

@@ -341,6 +341,13 @@ export default function AdminDashboard() {
     });
   };
 
+  // State and function to handle editing users
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+  };
+
   const renderUsers = () => (
     <div style={styles.tableContainer}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
@@ -509,7 +516,12 @@ export default function AdminDashboard() {
               <td style={styles.td}>{user.isAdmin ? '✅' : '❌'}</td>
               <td style={styles.td}>{user.isVerified ? '✅' : '❌'}</td>
               <td style={styles.td}>
-                <button style={styles.actionButton}>Edit</button>
+                <button 
+                  style={styles.actionButton}
+                  onClick={() => handleEditUser(user)}
+                >
+                  Edit
+                </button>
               </td>
             </tr>
           ))}
