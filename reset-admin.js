@@ -15,7 +15,7 @@ async function resetAdmin() {
     const adminUser = await storage.createUser({
       username: "admin",
       password: "TempPass123!",
-      email: "admin@jesuswalks.com",
+      email: "napadatai@duck.com",
       isAdmin: true
     });
 
@@ -23,7 +23,7 @@ async function resetAdmin() {
     console.log('📋 Login credentials:');
     console.log('   Username: admin');
     console.log('   Password: TempPass123!');
-    console.log('   Email: admin@jesuswalks.com');
+    console.log('   Email: napadatai@duck.com');
     console.log('');
     console.log('⚠️  IMPORTANT: Change this password immediately after logging in!');
     
