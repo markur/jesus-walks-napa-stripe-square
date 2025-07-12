@@ -12,6 +12,17 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  country: text("country"),
+  profilePicture: text("profile_picture"),
+  notes: text("notes"),
+  socialProfiles: jsonb("social_profiles"), // {facebook: "", instagram: "", twitter: "", linkedin: "", website: ""}
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const events = pgTable("events", {
@@ -110,6 +121,26 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: passwordSchema,
 });
 
+export const updateUserProfileSchema = createInsertSchema(users).pick({
+  phone: true,
+  address: true,
+  city: true,
+  state: true,
+  postalCode: true,
+  country: true,
+  profilePicture: true,
+  notes: true,
+  socialProfiles: true,
+}).extend({
+  socialProfiles: z.object({
+    facebook: z.string().optional(),
+    instagram: z.string().optional(),
+    twitter: z.string().optional(),
+    linkedin: z.string().optional(),
+    website: z.string().url().optional().or(z.literal("")),
+  }).optional(),
+});
+
 export const insertEventSchema = createInsertSchema(events);
 export const insertRegistrationSchema = createInsertSchema(registrations);
 export const insertWaitlistSchema = createInsertSchema(waitlist).pick({
@@ -127,6 +158,7 @@ export const insertShippingRateSchema = createInsertSchema(shippingRates);
 
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertRegistration = z.infer<typeof insertRegistrationSchema>;
 export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;

@@ -311,6 +311,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile update route
+  app.put("/api/users/:id/profile", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { updateUserProfileSchema } = await import("@shared/schema");
+      const profileData = updateUserProfileSchema.parse(req.body);
+
+      const updatedUser = await storage.updateUserProfile(userId, profileData);
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid profile data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
   // User routes
   app.post("/api/users", async (req, res) => {
     try {

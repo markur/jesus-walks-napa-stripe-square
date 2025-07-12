@@ -68,6 +68,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
 
   updateUserPassword(userId: number, newPassword: string): Promise<void>;
+  updateUserProfile(userId: number, profileData: any): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -280,6 +281,20 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ password: newPassword })
       .where(eq(users.id, userId));
+  }
+
+  async updateUserProfile(userId: number, profileData: any): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...profileData, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser.length) {
+      throw new Error("User not found");
+    }
+
+    return updatedUser[0];
   }
 }
 

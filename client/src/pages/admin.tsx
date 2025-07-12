@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -320,7 +319,7 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: "Quantity must be at least 1", variant: "destructive" });
       return;
     }
-    
+
     const selectedProduct = products?.find(p => p.id.toString() === orderForm.productId);
     if (!selectedProduct) {
       toast({ title: "Error", description: "Selected product not found", variant: "destructive" });
