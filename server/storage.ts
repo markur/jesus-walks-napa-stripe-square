@@ -3,7 +3,7 @@ import type { User, Event, Registration, Waitlist, Product, Order, OrderItem, In
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import session from "express-session";
-import connectPgSimple from "connect-pgSimple";
+import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 
 export interface IStorage {
