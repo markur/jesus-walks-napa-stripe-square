@@ -38,9 +38,11 @@ export default function AdminDashboard() {
     enabled: currentUser?.isAdmin === true,
   });
 
-  const { data: products } = useQuery<Product[]>({
+  const { data: products, error: productsError, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     enabled: currentUser?.isAdmin === true,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Show loading only for initial auth check
@@ -569,9 +571,49 @@ export default function AdminDashboard() {
     </div>
   );
 
+  // Test product creation mutation
+  const createTestProductMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/create-test-product', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Test product created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create test product",
+        variant: "destructive" 
+      });
+    },
+  });
+
   const renderProducts = () => (
     <div style={styles.tableContainer}>
-      <h2>Products Management</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+        <h2>Products Management</h2>
+        <button 
+          style={styles.actionButton}
+          onClick={() => createTestProductMutation.mutate()}
+          disabled={createTestProductMutation.isPending}
+        >
+          {createTestProductMutation.isPending ? 'Creating...' : 'Create Test Product'}
+        </button>
+      </div>
+      
+      {productsError && (
+        <div style={{ padding: '1rem', color: 'red', backgroundColor: '#fee' }}>
+          Error loading products: {productsError.message}
+        </div>
+      )}
+      
+      {productsLoading && (
+        <div style={{ padding: '1rem' }}>Loading products...</div>
+      )}
+      
       <table style={styles.table}>
         <thead>
           <tr>
@@ -644,13 +686,18 @@ export default function AdminDashboard() {
                   style={styles.formInput}
                   required
                 >
-                  <option value="">Choose a product...</option>
+                  <option value="">Choose a product... ({products?.length || 0} available)</option>
                   {products?.map(product => (
                     <option key={product.id} value={product.id}>
                       {product.name} - ${Number(product.price).toFixed(2)} (Stock: {product.stock})
                     </option>
                   ))}
                 </select>
+                {!products?.length && (
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    No products found. Create a test product first.
+                  </div>
+                )}
               </div>
 
               <div style={styles.formGroup}>

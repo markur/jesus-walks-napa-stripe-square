@@ -463,8 +463,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User routes
-  app.post("/api/users", async (req, res) => {
+  // Admin user creation route
+  app.post("/api/users", requireAdmin, async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(userData.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("User creation error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user", error: error.message });
+    }
+  });
+
+  // Public user registration route  
+  app.post("/api/auth/register", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
 
@@ -632,10 +658,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
     } catch (error) {
+      console.error("Product creation error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid product data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create product" });
+      res.status(500).json({ message: "Failed to create product", error: error.message });
     }
   });
 
@@ -645,6 +672,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(products);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Create test product for development
+  app.post("/api/admin/create-test-product", requireAdmin, async (req, res) => {
+    try {
+      const testProduct = {
+        name: "Jesus Walks Napa Valley Wine",
+        description: "Premium wine from the beautiful vineyards of Napa Valley",
+        price: "49.99",
+        imageUrl: "/assets/napa-valley-vineyard.webp",
+        category: "Wine",
+        stock: 100
+      };
+
+      const product = await storage.createProduct(testProduct);
+      res.status(201).json({ 
+        message: "Test product created successfully", 
+        product 
+      });
+    } catch (error) {
+      console.error("Test product creation error:", error);
+      res.status(500).json({ message: "Failed to create test product", error: error.message });
     }
   });
 
