@@ -8,6 +8,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [authChecked, setAuthChecked] = useState(false);
   const { toast } = useToast();
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Check if user is logged in and is admin with better error handling
   const { data: currentUser, isLoading: isLoadingUser, error: userError, isError } = useQuery<User | null>({
@@ -353,6 +357,42 @@ export default function AdminDashboard() {
     setEditingUser(user);
   };
 
+  const deleteUser = async (userId: number) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      setError('Failed to delete user');
+    }
+  };
+
+  const testEmail = async () => {
+    setIsTestingEmail(true);
+    setEmailTestResult(null);
+
+    try {
+      const response = await fetch('/api/test-email');
+      const result = await response.json();
+
+      if (result.success) {
+        setEmailTestResult('✅ Email test successful! Check your email.');
+      } else {
+        setEmailTestResult(`❌ Email test failed: ${result.message}`);
+      }
+    } catch (error) {
+      setEmailTestResult('❌ Email test failed: Network error');
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
+
   const renderUsers = () => (
     <div style={styles.tableContainer}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
@@ -606,17 +646,17 @@ export default function AdminDashboard() {
           {createTestProductMutation.isPending ? 'Creating...' : 'Create Test Product'}
         </button>
       </div>
-      
+
       {productsError && (
         <div style={{ padding: '1rem', color: 'red', backgroundColor: '#fee' }}>
           Error loading products: {productsError.message}
         </div>
       )}
-      
+
       {productsLoading && (
         <div style={{ padding: '1rem' }}>Loading products...</div>
       )}
-      
+
       <table style={styles.table}>
         <thead>
           <tr>

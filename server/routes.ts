@@ -701,10 +701,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (_req, res) => {
     try {
+      console.log('Products endpoint accessed');
       const products = await storage.getAllProducts();
+      console.log(`Found ${products.length} products`);
       res.json(products);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch products" });
+      console.error('Products fetch error:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch products", 
+        error: error.message 
+      });
     }
   });
 
@@ -813,6 +819,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Force create products error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Email test endpoint
+  app.get("/api/test-email", requireAdmin, async (req, res) => {
+    try {
+      const { emailService } = await import('./services/email.js');
+      
+      // Check if email service is enabled
+      const isEnabled = emailService.isEnabled();
+      
+      if (!isEnabled) {
+        return res.json({
+          success: false,
+          message: "Email service is not configured. Check your SMTP environment variables.",
+          configured: false
+        });
+      }
+
+      // Test sending a welcome email to admin
+      const testEmail = "admin@jesuswalks.com";
+      const emailSent = await emailService.sendWelcomeEmail(testEmail, "Test User");
+      
+      res.json({
+        success: emailSent,
+        message: emailSent ? "Test email sent successfully!" : "Failed to send test email",
+        configured: true,
+        emailService: isEnabled
+      });
+    } catch (error) {
+      console.error("Email test error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Email test failed",
+        error: error.message
+      });
     }
   });
 
