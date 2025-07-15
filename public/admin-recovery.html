@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Recovery - Jesus Walks Napa</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .credentials {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .credential-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .label {
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .value {
+            color: #2b6cb0;
+            background: #ebf8ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .btn {
+            background: #4299e1;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background: #3182ce;
+        }
+        .warning {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Admin Recovery</h1>
+        <p>Your admin password has been reset successfully!</p>
+        
+        <div class="credentials">
+            <div class="credential-row">
+                <span class="label">Username:</span>
+                <span class="value">markur</span>
+            </div>
+            <div class="credential-row">
+                <span class="label">Password:</span>
+                <span class="value">TempPass2025!</span>
+            </div>
+        </div>
+        
+        <div class="warning">
+            ⚠️ Please change this password immediately after logging in for security purposes.
+        </div>
+        
+        <a href="/login" class="btn">Go to Login Page</a>
+        <a href="/admin" class="btn">Go to Admin Dashboard</a>
+    </div>
+</body>
+</html>

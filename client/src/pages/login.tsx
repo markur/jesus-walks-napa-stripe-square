@@ -11,6 +11,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { User } from "@shared/schema";
+import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -22,6 +27,34 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [recoveryMessage, setRecoveryMessage] = useState('');
+
+  // Check for recovery parameters in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const recovery = urlParams.get('recovery');
+    const message = urlParams.get('message');
+
+    if (recovery === 'success' && message) {
+      setRecoveryMessage(message);
+      // Pre-fill admin credentials if this is a recovery
+      if (message.includes('markur')) {
+        setUsername('markur');
+        setPassword('TempPass2025!');
+      }
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, '/login');
+    } else if (recovery === 'error' && message) {
+      setError(message);
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, '/login');
+    }
+  }, []);
+
 
   // Check if user is already logged in
   const { data: user, isLoading: isCheckingAuth } = useQuery<User | null>({
@@ -51,7 +84,7 @@ export default function Login() {
         });
 
         const contentType = response.headers.get("content-type");
-        
+
         if (!contentType || !contentType.includes("application/json")) {
           const text = await response.text();
           console.error("Received non-JSON response:", text);
@@ -109,7 +142,20 @@ export default function Login() {
             <CardHeader>
               <CardTitle>Login</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+        {recoveryMessage && (
+          <Alert>
+            <AlertDescription className="text-green-700 bg-green-50 border-green-200">
+              {recoveryMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
               <Form {...form}>
                 <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
                   <FormField
