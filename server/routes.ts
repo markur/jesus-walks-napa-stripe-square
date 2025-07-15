@@ -102,8 +102,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("Admin user created successfully");
         
-        // Redirect to login with success message
-        return res.redirect('/login?recovery=success&message=Admin%20user%20created.%20Username:%20markur,%20Password:%20TempPass2025!');
+        return res.json({
+          success: true,
+          message: "Admin user created successfully",
+          credentials: {
+            username: "markur",
+            password: "TempPass2025!"
+          }
+        });
       }
 
       // Reset password to a temporary one
@@ -111,11 +117,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserPassword(user.id, tempPassword);
       console.log("Password reset completed");
 
-      // Redirect to login with success message
-      return res.redirect('/login?recovery=success&message=Password%20reset%20successful.%20Use%20username:%20markur,%20password:%20TempPass2025!');
+      return res.json({
+        success: true,
+        message: "Password reset successful",
+        credentials: {
+          username: "markur",
+          password: "TempPass2025!"
+        }
+      });
     } catch (error) {
       console.error("Admin recovery error:", error);
-      return res.redirect('/login?recovery=error&message=Failed%20to%20reset%20password');
+      return res.status(500).json({
+        success: false,
+        message: "Failed to reset password",
+        error: error.message
+      });
     }
   });
 
