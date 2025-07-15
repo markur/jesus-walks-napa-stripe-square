@@ -679,12 +679,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/create-test-product", requireAdmin, async (req, res) => {
     try {
       const testProduct = {
-        name: "Jesus Walks Napa Valley Wine",
-        description: "Premium wine from the beautiful vineyards of Napa Valley",
-        price: "49.99",
-        imageUrl: "/assets/napa-valley-vineyard.webp",
-        category: "Wine",
-        stock: 100
+        name: "Disneyland 2-day Ticket",
+        description: "Good for California Adventure and Disneyland",
+        price: "100.00",
+        imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
+        category: "Tickets",
+        stock: 50
       };
 
       const product = await storage.createProduct(testProduct);
@@ -707,12 +707,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const testProduct = {
-        name: "Jesus Walks Napa Valley Wine",
-        description: "Premium wine from the beautiful vineyards of Napa Valley",
-        price: "49.99",
-        imageUrl: "/assets/napa-valley-vineyard.webp",
-        category: "Wine",
-        stock: 100
+        name: "Disneyland 2-day Ticket",
+        description: "Good for California Adventure and Disneyland",
+        price: "100.00",
+        imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
+        category: "Tickets",
+        stock: 50
       };
 
       const product = await storage.createProduct(testProduct);
