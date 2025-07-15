@@ -218,9 +218,9 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     console.log('Fetching all users from database...');
-    const users = await db.select().from(users);
-    console.log('Raw users from DB:', users.length);
-    const sanitizedUsers = users.map(user => ({
+    const allUsers = await db.select().from(users);
+    console.log('Raw users from DB:', allUsers.length);
+    const sanitizedUsers = allUsers.map(user => ({
       ...user,
       password: undefined // Don't return password
     }));
