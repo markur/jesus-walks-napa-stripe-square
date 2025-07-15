@@ -28,6 +28,7 @@ export default function AdminDashboard() {
 
   const { data: users, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    queryFn: () => apiRequest("/api/users"),
     enabled: currentUser?.isAdmin === true,
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache
@@ -35,11 +36,13 @@ export default function AdminDashboard() {
 
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+    queryFn: () => apiRequest("/api/orders"),
     enabled: currentUser?.isAdmin === true,
   });
 
   const { data: products, error: productsError, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    queryFn: () => apiRequest("/api/products"),
     enabled: currentUser?.isAdmin === true,
     staleTime: 0,
     gcTime: 0,

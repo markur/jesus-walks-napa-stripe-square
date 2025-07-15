@@ -293,9 +293,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store reset token in database
       await storage.setPasswordResetToken(user.id, resetToken, resetExpiry);
 
-      // In a real app, you would send an email here
-      // For now, we'll log the reset link
-      console.log(`Password reset link for ${email}: /reset-password?token=${resetToken}`);
+      // Send reset email
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const { emailService } = await import('./services/email.js');
+      const emailSent = await emailService.sendPasswordResetEmail(email, resetToken, baseUrl);
+
+      if (!emailSent) {
+        console.log(`Password reset link for ${email}: /reset-password?token=${resetToken}`);
+      }
 
       res.json({ 
         message: "If this email exists, you will receive a password reset link.",
@@ -435,6 +440,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateProductStock(item.productId, -item.quantity);
       }
 
+      // Send order confirmation email
+      try {
+        const { emailService } = await import('./services/email.js');
+        await emailService.sendOrderConfirmationEmail(user.email, order);
+      } catch (emailError) {
+        console.error("Failed to send order confirmation email:", emailError);
+        // Don't fail the order creation if email fails
+      }
+
       res.status(201).json({ 
         message: "Order created successfully", 
         order 
@@ -487,6 +501,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.createUser(userData);
+      
+      // Send welcome email
+      try {
+        const { emailService } = await import('./services/email.js');
+        await emailService.sendWelcomeEmail(user.email, user.username);
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Don't fail the user creation if email fails
+      }
+      
       res.status(201).json(user);
     } catch (error) {
       console.error("User creation error:", error);
