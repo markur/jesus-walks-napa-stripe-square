@@ -100,8 +100,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isAdmin: true
         });
 
-        // Redirect to login page with success message
-        return res.redirect('/login?recovery=success&message=Admin user created. Use username: markur, password: TempPass2025!');
+        console.log("Admin user created successfully");
+        return res.json({
+          success: true,
+          message: "Admin user created successfully",
+          username: "markur",
+          temporaryPassword: "TempPass2025!",
+          note: "Please change this password immediately after logging in"
+        });
       }
 
       // Reset password to a temporary one
@@ -109,11 +115,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserPassword(user.id, tempPassword);
       console.log("Password reset completed");
 
-      // Redirect to login page with success message
-      return res.redirect('/login?recovery=success&message=Password reset successful. Use username: markur, password: TempPass2025!');
+      return res.json({
+        success: true,
+        message: "Password reset successful",
+        username: "markur",
+        temporaryPassword: "TempPass2025!",
+        note: "Please change this password immediately after logging in"
+      });
     } catch (error) {
       console.error("Admin recovery error:", error);
-      res.redirect('/login?recovery=error&message=Failed to reset password');
+      res.status(500).json({
+        success: false,
+        message: "Failed to reset password",
+        error: error.message
+      });
     }
   });
 
@@ -697,15 +712,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const testProduct = {
-        name: "Disneyland 2-day Ticket",
-        description: "Good for California Adventure and Disneyland",
-        price: "100.00",
-        imageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
-        category: "Tickets",
-        stock: 50
+        name: "Jesus Walks Napa Valley Wine",
+        description: "Premium wine from the beautiful vineyards of Napa Valley",
+        price: "49.99",
+        imageUrl: "/assets/napa-valley-vineyard.webp",
+        category: "Wine",
+        stock: 100
       };
 
       const product = await storage.createProduct(testProduct);
+      console.log("Development product created:", product);
+      
       res.status(201).json({ 
         message: "Development product created successfully", 
         product 
@@ -720,11 +737,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/debug/products", async (req, res) => {
     try {
       const products = await storage.getAllProducts();
+      console.log("Products found in debug endpoint:", products.length);
       res.json({ 
         count: products.length,
-        products: products.map(p => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))
+        products: products.map(p => ({ id: p.id, name: p.name, price: p.price, stock: p.stock, imageUrl: p.imageUrl }))
       });
     } catch (error) {
+      console.error("Debug products error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Force create test products endpoint
+  app.post("/api/debug/force-create-products", async (req, res) => {
+    try {
+      const testProducts = [
+        {
+          name: "Jesus Walks Napa Valley Wine",
+          description: "Premium wine from the beautiful vineyards of Napa Valley",
+          price: "49.99",
+          imageUrl: "/assets/napa-valley-vineyard.webp",
+          category: "Wine",
+          stock: 100
+        },
+        {
+          name: "Vineyard Tour Experience",
+          description: "Guided tour through our premium vineyard with wine tasting",
+          price: "75.00",
+          imageUrl: "/assets/napa-valley-vineyard.webp",
+          category: "Experience",
+          stock: 25
+        }
+      ];
+
+      const createdProducts = [];
+      for (const productData of testProducts) {
+        const product = await storage.createProduct(productData);
+        createdProducts.push(product);
+      }
+
+      console.log("Force created products:", createdProducts.length);
+      res.json({
+        message: "Test products created successfully",
+        count: createdProducts.length,
+        products: createdProducts
+      });
+    } catch (error) {
+      console.error("Force create products error:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -1024,8 +1083,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Note: Catch-all routing is now handled by Vite middleware in development
-  // and by serveStatic in production
+  // Catch-all route for client-side routing - must be last
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    
+    // Skip static file requests
+    if (req.path.includes('.')) {
+      return next();
+    }
+    
+    // For all other routes, serve the main index.html for client-side routing
+    if (app.get("env") === "development") {
+      // In development, let Vite handle this
+      return next();
+    } else {
+      // In production, serve the built index.html
+      res.sendFile(path.resolve('dist/client/index.html'));
+    }
+  });
 
   return server;
 }
