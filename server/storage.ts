@@ -168,6 +168,18 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
 
+  async updateProduct(id: number, productData: any): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set({ 
+        ...productData,
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     return order;

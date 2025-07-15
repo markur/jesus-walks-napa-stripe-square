@@ -1,4 +1,3 @@
-
 import nodemailer from 'nodemailer';
 
 interface EmailConfig {

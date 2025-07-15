@@ -352,25 +352,77 @@ export default function AdminDashboard() {
 
   // State and function to handle editing users
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    username: '',
+    email: '',
+    isAdmin: false,
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+    setEditUserForm({
+      username: user.username,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      newPassword: '',
+      confirmPassword: ''
+    });
   };
 
-  const deleteUser = async (userId: number) => {
-    try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: { userId: number; userData: any }) => {
+      return apiRequest(`/api/users/${data.userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data.userData),
       });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      refetchUsers();
+      setEditingUser(null);
+      setEditUserForm({ username: '', email: '', isAdmin: false, newPassword: '', confirmPassword: '' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update user",
+        variant: "destructive" 
+      });
+    },
+  });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
+  const handleUpdateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
 
-      setUsers(users.filter(user => user.id !== userId));
-    } catch (error) {
-      setError('Failed to delete user');
+    if (editUserForm.newPassword && editUserForm.newPassword !== editUserForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
+      return;
     }
+
+    if (editUserForm.newPassword && editUserForm.newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    const updateData: any = {
+      username: editUserForm.username,
+      email: editUserForm.email,
+      isAdmin: editUserForm.isAdmin
+    };
+
+    if (editUserForm.newPassword) {
+      updateData.password = editUserForm.newPassword;
+    }
+
+    updateUserMutation.mutate({
+      userId: editingUser.id,
+      userData: updateData
+    });
   };
 
   const testEmail = async () => {
@@ -541,6 +593,78 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Edit User Form */}
+      {editingUser && (
+        <div style={styles.formOverlay}>
+          <div style={styles.formContainer}>
+            <h3>Edit User: {editingUser.username}</h3>
+            <form onSubmit={handleUpdateUser}>
+              <div style={styles.formGroup}>
+                <label>Username:</label>
+                <input
+                  type="text"
+                  value={editUserForm.username}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, username: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Email:</label>
+                <input
+                  type="email"
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>New Password (leave blank to keep current):</label>
+                <input
+                  type="password"
+                  value={editUserForm.newPassword}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  style={styles.formInput}
+                  minLength={6}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Confirm New Password:</label>
+                <input
+                  type="password"
+                  value={editUserForm.confirmPassword}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  style={styles.formInput}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={editUserForm.isAdmin}
+                    onChange={(e) => setEditUserForm(prev => ({ ...prev, isAdmin: e.target.checked }))}
+                  />
+                  Admin User
+                </label>
+              </div>
+              <div style={styles.formButtons}>
+                <button type="submit" style={styles.actionButton} disabled={updateUserMutation.isPending}>
+                  {updateUserMutation.isPending ? 'Updating...' : 'Update User'}
+                </button>
+                <button 
+                  type="button" 
+                  style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                  onClick={() => setEditingUser(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -634,6 +758,62 @@ export default function AdminDashboard() {
     },
   });
 
+  // Product edit state
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editProductForm, setEditProductForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: '',
+    stock: 0,
+    imageUrl: ''
+  });
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setEditProductForm({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      stock: product.stock,
+      imageUrl: product.imageUrl
+    });
+  };
+
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: async (data: { productId: number; productData: any }) => {
+      return apiRequest(`/api/products/${data.productId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data.productData),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Product updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setEditingProduct(null);
+      setEditProductForm({ name: '', description: '', price: '', category: '', stock: 0, imageUrl: '' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update product",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleUpdateProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    updateProductMutation.mutate({
+      productId: editingProduct.id,
+      productData: editProductForm
+    });
+  };
+
   const renderProducts = () => (
     <div style={styles.tableContainer}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
@@ -657,6 +837,89 @@ export default function AdminDashboard() {
         <div style={{ padding: '1rem' }}>Loading products...</div>
       )}
 
+      {/* Edit Product Form */}
+      {editingProduct && (
+        <div style={styles.formOverlay}>
+          <div style={styles.formContainer}>
+            <h3>Edit Product: {editingProduct.name}</h3>
+            <form onSubmit={handleUpdateProduct}>
+              <div style={styles.formGroup}>
+                <label>Name:</label>
+                <input
+                  type="text"
+                  value={editProductForm.name}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Description:</label>
+                <textarea
+                  value={editProductForm.description}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, description: e.target.value }))}
+                  style={{ ...styles.formInput, minHeight: '80px' }}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Price:</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editProductForm.price}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, price: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Category:</label>
+                <input
+                  type="text"
+                  value={editProductForm.category}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, category: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Stock:</label>
+                <input
+                  type="number"
+                  value={editProductForm.stock}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label>Image URL:</label>
+                <input
+                  type="url"
+                  value={editProductForm.imageUrl}
+                  onChange={(e) => setEditProductForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              <div style={styles.formButtons}>
+                <button type="submit" style={styles.actionButton} disabled={updateProductMutation.isPending}>
+                  {updateProductMutation.isPending ? 'Updating...' : 'Update Product'}
+                </button>
+                <button 
+                  type="button" 
+                  style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                  onClick={() => setEditingProduct(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -677,7 +940,12 @@ export default function AdminDashboard() {
               <td style={styles.td}>{product.stock}</td>
               <td style={styles.td}>{product.category}</td>
               <td style={styles.td}>
-                <button style={styles.actionButton}>Edit</button>
+                <button 
+                  style={styles.actionButton}
+                  onClick={() => handleEditProduct(product)}
+                >
+                  Edit
+                </button>
               </td>
             </tr>
           ))}

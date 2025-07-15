@@ -393,11 +393,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
       const updateData = req.body;
 
+      // If password is provided, validate it
+      if (updateData.password) {
+        if (updateData.password.length < 6) {
+          return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
+      }
+
       const updatedUser = await storage.updateUserProfile(userId, updateData);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Update product (admin only)
+  app.put("/api/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const productData = req.body;
+
+      const updatedProduct = await storage.updateProduct(productId, productData);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
     }
   });
 
