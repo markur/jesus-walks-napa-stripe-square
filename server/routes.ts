@@ -698,6 +698,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Development endpoint to quickly create a product (no auth required)
+  app.post("/api/dev/create-product", async (req, res) => {
+    try {
+      // Only allow in development
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "Not available in production" });
+      }
+
+      const testProduct = {
+        name: "Jesus Walks Napa Valley Wine",
+        description: "Premium wine from the beautiful vineyards of Napa Valley",
+        price: "49.99",
+        imageUrl: "/assets/napa-valley-vineyard.webp",
+        category: "Wine",
+        stock: 100
+      };
+
+      const product = await storage.createProduct(testProduct);
+      res.status(201).json({ 
+        message: "Development product created successfully", 
+        product 
+      });
+    } catch (error) {
+      console.error("Development product creation error:", error);
+      res.status(500).json({ message: "Failed to create development product", error: error.message });
+    }
+  });
+
+  // Debug endpoint to check products count
+  app.get("/api/debug/products", async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      res.json({ 
+        count: products.length,
+        products: products.map(p => ({ id: p.id, name: p.name, price: p.price, stock: p.stock }))
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.status(200).json({ 
