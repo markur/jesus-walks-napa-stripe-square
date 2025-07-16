@@ -804,6 +804,26 @@ export default function AdminDashboard() {
     },
   });
 
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      return apiRequest(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Product deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete product",
+        variant: "destructive" 
+      });
+    },
+  });
+
   const handleUpdateProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -940,12 +960,25 @@ export default function AdminDashboard() {
               <td style={styles.td}>{product.stock}</td>
               <td style={styles.td}>{product.category}</td>
               <td style={styles.td}>
-                <button 
-                  style={styles.actionButton}
-                  onClick={() => handleEditProduct(product)}
-                >
-                  Edit
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    style={styles.actionButton}
+                    onClick={() => handleEditProduct(product)}
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    style={{ ...styles.actionButton, backgroundColor: '#ef4444' }}
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete "${product.name}"?`)) {
+                        deleteProductMutation.mutate(product.id);
+                      }
+                    }}
+                    disabled={deleteProductMutation.isPending}
+                  >
+                    {deleteProductMutation.isPending ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

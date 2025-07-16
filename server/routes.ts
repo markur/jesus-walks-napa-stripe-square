@@ -422,6 +422,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete product (admin only)
+  app.delete("/api/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      
+      await storage.deleteProduct(productId);
+      res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ message: "Failed to delete product" });
+    }
+  });
+
   // Admin manual order creation
   app.post("/api/admin/create-order", requireAdmin, async (req, res) => {
     try {

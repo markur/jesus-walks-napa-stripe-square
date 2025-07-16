@@ -180,6 +180,10 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
 
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
+  }
+
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     return order;
@@ -304,18 +308,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
-  async updateUserProfile(userId: number, updateData: any): Promise<User> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ 
-        ...updateData,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    return updatedUser;
-  }
-
   async updateUserProfile(userId: number, profileData: any): Promise<User> {
     const [updatedUser] = await db
       .update(users)
@@ -323,11 +315,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
 
-    if (!updatedUser.length) {
+    if (!updatedUser) {
       throw new Error("User not found");
     }
 
-    return updatedUser[0];
+    return updatedUser;
   }
 
   async setPasswordResetToken(userId: number, token: string, expiry: Date): Promise<void> {
