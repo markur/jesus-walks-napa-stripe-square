@@ -440,6 +440,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, items, total, shippingAddress, status = 'pending' } = req.body;
 
+      console.log("Creating order with data:", { userId, items, total, shippingAddress, status });
+
       if (!userId || !items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Invalid order data" });
       }
@@ -465,14 +467,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createOrder({
         userId,
         status,
-        total,
-        shippingAddress,
+        total: parseFloat(total),
+        shippingAddress: JSON.stringify(shippingAddress),
         items
       });
 
       // Update product stock
       for (const item of items) {
-        await storage.updateProductStock(item.productId, -item.quantity);
+        const currentProduct = await storage.getProduct(item.productId);
+        const newStock = currentProduct.stock - item.quantity;
+        await storage.updateProductStock(item.productId, newStock);
       }
 
       // Send order confirmation email
@@ -490,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Admin order creation error:", error);
-      res.status(500).json({ message: "Failed to create order" });
+      res.status(500).json({ message: "Failed to create order", error: error.message });
     }
   });
 
