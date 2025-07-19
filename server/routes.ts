@@ -501,9 +501,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/orders", requireAdmin, async (_req, res) => {
     try {
       const orders = await storage.getAllOrders();
-      res.json(orders);
+      res.json(Array.isArray(orders) ? orders : []);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch orders" });
+      console.error('Orders fetch error:', error);
+      res.json([]);
     }
   });
 
@@ -742,13 +743,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Products endpoint accessed');
       const products = await storage.getAllProducts();
       console.log(`Found ${products.length} products`);
-      res.json(products);
+      
+      // Ensure we always return an array
+      const productsArray = Array.isArray(products) ? products : [];
+      res.json(productsArray);
     } catch (error) {
       console.error('Products fetch error:', error);
-      res.status(500).json({ 
-        message: "Failed to fetch products", 
-        error: error.message 
-      });
+      // Return empty array instead of error to prevent frontend crash
+      res.json([]);
     }
   });
 

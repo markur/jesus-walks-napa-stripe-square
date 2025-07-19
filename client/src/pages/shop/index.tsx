@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
+import { apiRequest } from "@/lib/queryClient";
 import type { Product } from "@shared/schema";
 
 export default function Shop() {
