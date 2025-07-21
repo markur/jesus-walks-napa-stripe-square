@@ -1,51 +1,44 @@
-import { QueryClient } from '@tanstack/react-query';
+// API helper function
+export async function apiRequest(endpoint: string, options?: RequestInit) {
+  console.log(`Making API request to: ${endpoint}`);
+  console.log('Request options:', options);
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+  const baseUrl = import.meta.env.VITE_API_URL || '';
+  const url = `${baseUrl}${endpoint}`;
 
-export async function apiRequest(method: "GET" | "POST" | "PUT" | "DELETE", url: string, body?: any) {
-  console.log(`=== API REQUEST DEBUG: ${method} ${url} ===`);
-  console.log('Request body:', body);
+  console.log('Full URL:', url);
 
-  const options: RequestInit = {
-    method,
+  const defaultOptions: RequestInit = {
+    credentials: 'include',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   };
 
-  if (body) {
-    options.body = JSON.stringify(body);
-    console.log('Stringified body:', options.body);
+  // Ensure method is properly set - default to GET if not specified
+  if (!options?.method) {
+    defaultOptions.method = 'GET';
   }
 
-  console.log('Request options:', options);
+  const finalOptions = { ...defaultOptions, ...options };
+  console.log('Final request options:', finalOptions);
 
   try {
-    const response = await fetch(url, options);
-
-    console.log(`Response status: ${response.status}`);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-    // Clone response to read it for logging without consuming it
-    const responseClone = response.clone();
-    const responseText = await responseClone.text();
-    console.log('Response body:', responseText);
+    const response = await fetch(url, finalOptions);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', [...response.headers.entries()]);
 
     if (!response.ok) {
-      console.error(`❌ Request failed: ${response.status} ${response.statusText}`);
-      console.error('Error response:', responseText);
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    return response;
+    const data = await response.json();
+    console.log('API response data:', data);
+    return data;
   } catch (error) {
-    console.error('❌ Network/Fetch error:', error);
+    console.error('API request failed:', error);
     throw error;
   }
 }

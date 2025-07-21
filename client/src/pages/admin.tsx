@@ -46,10 +46,22 @@ export default function AdminDashboard() {
 
   const { data: products, error: productsError, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    queryFn: () => apiRequest("/api/products"),
+    queryFn: async () => {
+      console.log('Admin: Fetching products...');
+      try {
+        const result = await apiRequest("/api/products", { method: 'GET' });
+        console.log('Admin: Products fetched successfully:', result);
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('Admin: Products fetch error:', error);
+        throw error;
+      }
+    },
     enabled: currentUser?.isAdmin === true,
     staleTime: 0,
     gcTime: 0,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Show loading only for initial auth check
