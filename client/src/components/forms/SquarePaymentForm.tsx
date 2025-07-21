@@ -147,10 +147,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     try {
       console.log('Initializing Square with completely fresh state, config:', squareConfig);
       
-      // Get card container
-      const cardContainer = document.getElementById('card-container');
-      if (!cardContainer) {
-        throw new Error('Card container not found');
+      // Generate a unique container ID to force Square to create a completely fresh instance
+      const uniqueContainerId = `square-card-container-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Get parent container and create a completely new container with unique ID
+      const parentContainer = document.getElementById('card-container-wrapper');
+      if (!parentContainer) {
+        throw new Error('Card container wrapper not found');
       }
       
       // Destroy existing card instance if it exists
@@ -164,25 +167,20 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         setCard(null);
       }
       
-      // Force complete DOM cleanup and reset
-      cardContainer.innerHTML = '';
-      cardContainer.className = 'p-4 border rounded-lg min-h-[60px] bg-white';
-      cardContainer.style.cssText = '';
+      // Completely remove old container and create fresh one with unique ID
+      parentContainer.innerHTML = `<div id="${uniqueContainerId}" class="p-4 border rounded-lg min-h-[60px] bg-white"></div>`;
       
       // Clear any existing Square payment instances from window
       if ((window as any).squarePayments) {
         delete (window as any).squarePayments;
       }
       
-      // Force multiple DOM refresh cycles to ensure clean state
-      cardContainer.style.display = 'none';
-      await new Promise(resolve => setTimeout(resolve, 150));
-      cardContainer.style.display = 'block';
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Force DOM refresh
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Create completely fresh payments instance with unique ID
       const uniqueId = Date.now() + Math.random();
-      console.log(`Creating fresh Square payments instance ${uniqueId}`);
+      console.log(`Creating fresh Square payments instance ${uniqueId} with container ${uniqueContainerId}`);
       
       const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
@@ -211,27 +209,33 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         autocomplete: 'off'
       });
 
-      // Detach any existing instances first, then attach fresh
+      // Attach to the unique container
       try {
-        await cardInstance.attach('#card-container');
-        console.log(`Square card form attached successfully with instance ${uniqueId}`);
+        await cardInstance.attach(`#${uniqueContainerId}`);
+        console.log(`Square card form attached successfully with instance ${uniqueId} to container ${uniqueContainerId}`);
         
-        // Clear any pre-filled test data after attachment
+        // Force clear any cached/pre-filled data after a delay
         setTimeout(() => {
-          const squareInputs = cardContainer.querySelectorAll('input');
-          squareInputs.forEach(input => {
-            if (input.value && (input.value.includes('4111') || input.value === '12/25' || input.value === '123')) {
-              input.value = '';
-              input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          });
-        }, 100);
+          const newContainer = document.getElementById(uniqueContainerId);
+          if (newContainer) {
+            // Clear any Square iframes that might have cached data
+            const squareIframes = newContainer.querySelectorAll('iframe');
+            squareIframes.forEach(iframe => {
+              // Force iframe to reload by setting src to itself
+              const originalSrc = iframe.src;
+              iframe.src = 'about:blank';
+              setTimeout(() => {
+                iframe.src = originalSrc;
+              }, 50);
+            });
+          }
+        }, 300);
         
       } catch (attachError) {
         console.log('Attachment failed, clearing and retrying...', attachError);
-        cardContainer.innerHTML = '';
+        parentContainer.innerHTML = `<div id="${uniqueContainerId}" class="p-4 border rounded-lg min-h-[60px] bg-white"></div>`;
         await new Promise(resolve => setTimeout(resolve, 200));
-        await cardInstance.attach('#card-container');
+        await cardInstance.attach(`#${uniqueContainerId}`);
         console.log('Square card form attached on retry');
       }
 
@@ -273,19 +277,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       }
     }
     
-    // Clear container completely and reset all attributes
-    const cardContainer = document.getElementById('card-container');
-    if (cardContainer) {
-      cardContainer.innerHTML = '';
-      cardContainer.className = 'p-4 border rounded-lg min-h-[60px] bg-white';
-      cardContainer.removeAttribute('data-square-card-container');
-      // Force browser to clear any cached form data
-      cardContainer.style.display = 'none';
-      cardContainer.offsetHeight; // Force reflow
-      cardContainer.style.display = 'block';
+    // Clear wrapper container completely
+    const wrapperContainer = document.getElementById('card-container-wrapper');
+    if (wrapperContainer) {
+      wrapperContainer.innerHTML = '<div class="p-4 border rounded-lg min-h-[60px] bg-white"><div class="text-gray-500 text-center">Refreshing payment form...</div></div>';
     }
     
-    // Clear any browser form data cache
+    // Clear any browser form data cache and Square iframes
     const inputs = document.querySelectorAll('input[data-square*="card"]');
     inputs.forEach(input => {
       if (input instanceof HTMLInputElement) {
@@ -294,12 +292,12 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       }
     });
     
-    // Clear Square iframes if they exist
-    const squareIframes = document.querySelectorAll('iframe[src*="square"]');
+    // Clear ALL Square iframes
+    const squareIframes = document.querySelectorAll('iframe[src*="square"], iframe[src*="squarecdn"]');
     squareIframes.forEach(iframe => iframe.remove());
     
     // Force longer delay to ensure complete cleanup
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Reinitialize from completely clean state
     setTimeout(() => {
@@ -404,9 +402,12 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           </div>
         </div>
 
-        {/* Square Card Container */}
-        <div id="card-container" className="p-4 border rounded-lg min-h-[60px] bg-white">
-          {/* Square will inject the card form here */}
+        {/* Square Card Container Wrapper */}
+        <div id="card-container-wrapper">
+          {/* Square will inject the card form here dynamically with unique ID */}
+          <div className="p-4 border rounded-lg min-h-[60px] bg-white">
+            <div className="text-gray-500 text-center">Loading payment form...</div>
+          </div>
         </div>
 
         <div className="flex justify-between items-center">
