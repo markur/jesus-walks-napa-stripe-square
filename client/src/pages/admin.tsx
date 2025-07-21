@@ -846,16 +846,29 @@ export default function AdminDashboard() {
                   {(() => {
                     try {
                       // Handle both JSON string and object formats
-                      const addr = typeof viewingOrder.shippingAddress === 'string' 
-                        ? JSON.parse(viewingOrder.shippingAddress)
-                        : viewingOrder.shippingAddress;
+                      let addr;
+                      if (typeof viewingOrder.shippingAddress === 'string') {
+                        addr = JSON.parse(viewingOrder.shippingAddress);
+                      } else if (viewingOrder.shippingAddress && typeof viewingOrder.shippingAddress === 'object') {
+                        addr = viewingOrder.shippingAddress;
+                      } else {
+                        return <div>No shipping address</div>;
+                      }
+                      
+                      // Handle different address formats
+                      const fullName = addr.fullName || `${addr.firstName || ''} ${addr.lastName || ''}`.trim();
+                      const street = addr.street || addr.address1 || '';
+                      const city = addr.city || '';
+                      const state = addr.state || '';
+                      const zipCode = addr.zipCode || addr.postalCode || '';
+                      const country = addr.country || '';
                       
                       return (
                         <div>
-                          <div>{addr.fullName || 'N/A'}</div>
-                          <div>{addr.street || 'N/A'}</div>
-                          <div>{addr.city || 'N/A'}, {addr.state || 'N/A'} {addr.zipCode || 'N/A'}</div>
-                          <div>{addr.country || 'N/A'}</div>
+                          <div>{fullName || 'N/A'}</div>
+                          <div>{street || 'N/A'}</div>
+                          <div>{city || 'N/A'}, {state || 'N/A'} {zipCode || 'N/A'}</div>
+                          <div>{country || 'N/A'}</div>
                         </div>
                       );
                     } catch (error) {

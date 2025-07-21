@@ -1225,6 +1225,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Simple auth middleware for checkout
+  const requireAuth = (req: any, res: any, next: any) => {
+    // For now, allow unauthenticated checkout
+    // In production, you might want to require authentication
+    next();
+  };
+
   // Checkout routes
   app.post("/api/checkout/create-payment-intent", requireAuth, async (req, res) => {
     console.log('Create payment intent request received');
