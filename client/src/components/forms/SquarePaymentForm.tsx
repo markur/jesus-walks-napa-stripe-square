@@ -48,18 +48,31 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   // Force re-initialization when component mounts fresh or amount changes
   useEffect(() => {
     if (squareConfig && window.Square) {
-      // Clear any existing card instance first
+      // Destroy existing instance and force complete reinitialization
       if (card) {
         card.destroy().catch(console.warn);
         setCard(null);
       }
       
-      // Small delay to ensure cleanup is complete and DOM is ready
+      // Clear the container completely and force DOM refresh
+      const cardContainer = document.getElementById('card-container');
+      if (cardContainer) {
+        cardContainer.innerHTML = '';
+        // Force a complete DOM reflow
+        cardContainer.offsetHeight;
+      }
+      
+      // Clear any Square-related browser cache/state
+      if (window.Square) {
+        delete (window as any).squarePayments;
+      }
+      
+      // Longer delay to ensure complete cleanup
       setTimeout(() => {
         initializeSquare();
-      }, 300);
+      }, 500);
     }
-  }, [amount, squareConfig]); // Re-initialize when amount or config changes
+  }, [amount, squareConfig, card]); // Include card in dependencies for better cleanup
 
   useEffect(() => {
     // Load Square configuration
@@ -132,9 +145,9 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     }
 
     try {
-      console.log('Initializing Square with fresh state, config:', squareConfig);
+      console.log('Initializing Square with completely fresh state, config:', squareConfig);
       
-      // Clear any existing card form and destroy previous instance
+      // Get card container
       const cardContainer = document.getElementById('card-container');
       if (!cardContainer) {
         throw new Error('Card container not found');
@@ -148,41 +161,60 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         } catch (destroyError) {
           console.warn('Error destroying previous card instance:', destroyError);
         }
+        setCard(null);
       }
       
-      // Completely clear container and force DOM refresh
+      // Force complete DOM cleanup and reset
       cardContainer.innerHTML = '';
-      cardContainer.style.display = 'none';
+      cardContainer.className = 'p-4 border rounded-lg min-h-[60px] bg-white';
+      cardContainer.style.cssText = '';
       
-      // Force DOM refresh
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Clear any existing Square payment instances from window
+      if ((window as any).squarePayments) {
+        delete (window as any).squarePayments;
+      }
+      
+      // Force multiple DOM refresh cycles to ensure clean state
+      cardContainer.style.display = 'none';
+      await new Promise(resolve => setTimeout(resolve, 100));
       cardContainer.style.display = 'block';
-
-      // Create fresh payments instance every time
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Create completely fresh payments instance with unique ID
+      const uniqueId = Date.now();
+      console.log(`Creating fresh Square payments instance ${uniqueId}`);
+      
       const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
-      // Initialize completely fresh card payment method
+      // Initialize completely fresh card payment method with additional config
       const cardInstance = await payments.card({
         style: {
           input: {
             fontSize: '16px',
             fontFamily: 'system-ui, sans-serif',
             backgroundColor: '#ffffff',
-            color: '#333333'
+            color: '#333333',
+            // Force fresh styling
+            border: '1px solid #d1d5db'
           },
           '.input-container': {
             borderColor: '#d1d5db',
             borderRadius: '8px'
+          },
+          '.input-container.is-focus': {
+            borderColor: '#2563eb'
           }
         }
       });
 
+      // Attach to container
       await cardInstance.attach('#card-container');
-      console.log('Square card form attached successfully with completely fresh state');
+      console.log(`Square card form attached successfully with instance ${uniqueId}`);
 
-      // Store fresh payments instance
-      (window as any).squarePayments = payments;
+      // Store fresh payments instance with unique identifier
+      (window as any).squarePayments = { payments, id: uniqueId };
       setCard(cardInstance);
+      
     } catch (error) {
       console.error('Failed to initialize Square:', error);
       onPaymentError(`Failed to initialize payment form: ${error.message}`);
@@ -293,20 +325,37 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
 
         <div className="flex justify-between items-center">
           <span className="text-lg font-semibold">Total: ${amount.toFixed(2)}</span>
-          <Button 
-            onClick={handlePayment} 
-            disabled={isLoading || !window.Square}
-            className="bg-black hover:bg-gray-800 text-white"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                Processing...
-              </>
-            ) : (
-              `Pay $${amount.toFixed(2)} with Square`
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => {
+                if (card) {
+                  card.destroy().then(() => {
+                    setCard(null);
+                    setTimeout(initializeSquare, 200);
+                  }).catch(console.warn);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+            >
+              Refresh Form
+            </Button>
+            <Button 
+              onClick={handlePayment} 
+              disabled={isLoading || !window.Square || !card}
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                `Pay $${amount.toFixed(2)} with Square`
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
