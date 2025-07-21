@@ -16,7 +16,7 @@ export const queryClient = new QueryClient({
 export async function apiRequest(endpoint: string, options?: RequestInit) {
   console.log(`Making API request to: ${endpoint}`);
   
-  const baseUrl = '/api';
+  const baseUrl = '';
   const url = `${baseUrl}${endpoint}`;
   
   const defaultOptions: RequestInit = {
