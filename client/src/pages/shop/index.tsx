@@ -10,10 +10,29 @@ export default function Shop() {
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      console.log('Fetching products from API...');
-      const result = await apiRequest("/api/products");
-      console.log('API response:', result);
-      return result;
+      console.log('=== SHOP API REQUEST DEBUG ===');
+      console.log('Making API request to /api/products...');
+      console.log('Current window location:', window.location.href);
+      console.log('API base URL:', window.location.origin);
+      
+      try {
+        const result = await apiRequest("/api/products");
+        console.log('API request successful!');
+        console.log('Response type:', typeof result);
+        console.log('Response is array:', Array.isArray(result));
+        console.log('Response length:', result?.length);
+        console.log('Full API response:', JSON.stringify(result, null, 2));
+        console.log('=== SHOP API REQUEST SUCCESS ===');
+        return result;
+      } catch (apiError) {
+        console.error('=== SHOP API REQUEST ERROR ===');
+        console.error('API Error type:', typeof apiError);
+        console.error('API Error message:', apiError.message);
+        console.error('API Error stack:', apiError.stack);
+        console.error('Full API error:', apiError);
+        console.error('=== SHOP API REQUEST FAILED ===');
+        throw apiError;
+      }
     },
     retry: 3,
     retryDelay: 1000,

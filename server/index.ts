@@ -64,6 +64,19 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Log all API requests with full details
+  if (path.startsWith("/api")) {
+    console.log('=== INCOMING API REQUEST ===');
+    console.log('Method:', req.method);
+    console.log('Path:', path);
+    console.log('URL:', req.url);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Query params:', req.query);
+    console.log('Body:', req.body);
+    console.log('Session:', req.session ? { id: req.session.id, userId: req.session.userId } : 'No session');
+    console.log('=== END REQUEST INFO ===');
+  }
+
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
@@ -73,6 +86,13 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
+      console.log('=== API RESPONSE ===');
+      console.log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+      if (capturedJsonResponse) {
+        console.log('Response data:', JSON.stringify(capturedJsonResponse, null, 2));
+      }
+      console.log('=== END RESPONSE ===');
+      
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
