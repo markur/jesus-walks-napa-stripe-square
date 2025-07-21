@@ -113,21 +113,28 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       console.log('Initializing Square with config:', squareConfig);
       const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
+      // Clear any existing card form first
+      const cardContainer = document.getElementById('card-container');
+      if (!cardContainer) {
+        throw new Error('Card container not found');
+      }
+      cardContainer.innerHTML = '';
+
       // Initialize card payment method
       const card = await payments.card({
         style: {
           input: {
             fontSize: '16px',
             fontFamily: 'system-ui, sans-serif',
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            color: '#333333'
+          },
+          '.input-container': {
+            borderColor: '#d1d5db',
+            borderRadius: '8px'
           }
         }
       });
-
-      const cardContainer = document.getElementById('card-container');
-      if (!cardContainer) {
-        throw new Error('Card container not found');
-      }
 
       await card.attach('#card-container');
       console.log('Square card form attached successfully');
@@ -142,7 +149,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   };
 
   const handlePayment = async () => {
+    console.log('Square payment button clicked');
+    
     if (!window.Square || !(window as any).squareCard) {
+      console.error('Square not ready:', { 
+        Square: !!window.Square, 
+        card: !!(window as any).squareCard 
+      });
       onPaymentError('Payment system not ready');
       return;
     }
@@ -150,10 +163,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     setIsLoading(true);
 
     try {
+      console.log('Attempting to tokenize Square payment...');
       const result = await (window as any).squareCard.tokenize();
+      console.log('Square tokenization result:', result);
 
       if (result.status === 'OK') {
-        // Token created successfully
+        console.log('Square payment tokenization successful');
+        
         toast({
           title: "Payment Processed",
           description: `Square payment of $${amount.toFixed(2)} completed successfully!`,
@@ -165,13 +181,15 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           processor: 'square'
         });
       } else {
+        console.error('Square tokenization failed:', result);
         // Handle tokenization errors
-        const errorMessage = result.errors?.[0]?.message || 'Payment failed';
+        const errorMessage = result.errors?.[0]?.message || result.errors?.[0]?.detail || 'Payment failed';
+        console.error('Square error message:', errorMessage);
         onPaymentError(errorMessage);
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      onPaymentError('Payment processing failed');
+      console.error('Square payment error:', error);
+      onPaymentError(`Payment processing failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

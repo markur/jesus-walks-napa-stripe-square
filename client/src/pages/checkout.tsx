@@ -258,6 +258,30 @@ function CheckoutForm() {
     }
   };
 
+  const handleStripePayment = async (data: BillingForm) => {
+    if (!stripe || !elements) {
+      throw new Error('Payment system not ready');
+    }
+
+    console.log('Processing Stripe payment...');
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      throw new Error(submitError.message);
+    }
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/order-confirmation`,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  };
+
   const handleSubmit = async (data: BillingForm) => {
     if (!selectedRate || !shippingAddress) {
       toast({
