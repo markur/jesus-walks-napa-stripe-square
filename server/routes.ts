@@ -939,29 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Debug endpoint for payment troubleshooting
-  app.post("/api/debug/payment-data", (req, res) => {
-    console.log('=== PAYMENT DEBUG ENDPOINT ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('Headers:', req.headers);
-    
-    const { amount } = req.body;
-    
-    res.json({
-      received: {
-        amount,
-        type: typeof amount,
-        isValid: !!(amount && amount > 0),
-        fullBody: req.body
-      },
-      validation: {
-        exists: !!amount,
-        isNumber: typeof amount === 'number',
-        isPositive: amount > 0,
-        isFinite: Number.isFinite(amount)
-      }
-    });
-  });
+  
 
   // Environment variables check endpoint (for debugging)
   app.get("/api/env-check", (req, res) => {
@@ -981,25 +959,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('=== PAYMENT INTENT CREATION DEBUG ===');
       console.log('Full request body:', JSON.stringify(req.body, null, 2));
-      console.log('Request headers:', req.headers);
-      console.log('Content-Type:', req.headers['content-type']);
 
       const { amount } = req.body;
 
       console.log('Extracted amount:', amount);
       console.log('Amount type:', typeof amount);
-      console.log('Amount is number:', typeof amount === 'number');
-      console.log('Amount > 0:', amount > 0);
-      console.log('Amount truthy:', !!amount);
 
       if (!amount || amount <= 0) {
         console.log('❌ VALIDATION FAILED - Invalid amount received:', amount);
-        console.log('Amount check results:', {
-          exists: !!amount,
-          isPositive: amount > 0,
-          type: typeof amount,
-          value: amount
-        });
         return res.status(400).json({ 
           error: "Invalid amount",
           debug: {
@@ -1277,37 +1244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Checkout routes
-  app.post("/api/checkout/create-payment-intent", requireAuth, async (req, res) => {
-    console.log('Create payment intent request received');
-    console.log('Request body:', req.body);
-    console.log('User:', req.user);
-
-    try {
-      const { amount } = req.body;
-
-      if (!amount || amount <= 0) {
-        return res.status(400).json({ error: "Invalid amount" });
-      }
-
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
-
-      res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (error) {
-      console.error("Payment intent creation error:", error);
-      res.status(500).json({ 
-        error: "Failed to create payment intent",
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
-    }
-  });
+  
 
   // Catch-all route for client-side routing - must be last
   app.get('*', (req, res, next) => {
