@@ -773,15 +773,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('=== PRODUCTS API REQUEST ===');
       console.log('Fetching products from storage...');
-      
+
       const products = await storage.getAllProducts();
       const productsArray = Array.isArray(products) ? products : [];
-      
+
       console.log(`Found ${productsArray.length} products`);
-      
+
       res.setHeader('Content-Type', 'application/json');
       res.json(productsArray);
-      
+
       console.log('Products response sent successfully');
     } catch (error) {
       console.error('Products API error:', error);
@@ -947,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  
+
 
   // Environment variables check endpoint (for debugging)
   app.get("/api/env-check", (req, res) => {
@@ -1340,7 +1340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  
+
 
   // Orders endpoint for checkout
   app.post("/api/orders", async (req, res) => {
@@ -1406,6 +1406,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendFile(path.resolve('dist/client/index.html'));
     }
   });
+
+  // Newsletter subscription endpoint
+app.post("/api/newsletter/subscribe", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please enter a valid email address' 
+      });
+    }
+
+    // TODO: In a real implementation, you would:
+    // 1. Store the email in your database
+    // 2. Send a confirmation email
+    // 3. Integrate with your email marketing service (e.g., Mailchimp, ConvertKit)
+
+    console.log('Newsletter subscription for:', email.trim());
+
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    res.json({ 
+      success: true, 
+      message: 'Successfully subscribed to newsletter' 
+    });
+
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+});
 
   return server;
 }

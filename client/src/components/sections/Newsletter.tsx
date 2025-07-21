@@ -42,7 +42,7 @@ export function Newsletter() {
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           Join our waitlist to receive updates about upcoming events and community news.
         </p>
-        
+
         <form onSubmit={handleSubmit} className="flex gap-4 max-w-md mx-auto">
           <Input
             type="email"
