@@ -17,21 +17,16 @@
  * - onPaymentError: Callback for payment errors
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
-
-// Square Web SDK global interface declaration
-// This allows TypeScript to recognize the Square object loaded from CDN
-declare global {
-  interface Window {
-    Square: any;  // Square Web SDK object
-  }
-}
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+
+declare global {
+  interface Window {
+    Square: any;
+  }
+}
 
 interface SquarePaymentFormProps {
   amount: number;
@@ -42,287 +37,132 @@ interface SquarePaymentFormProps {
 export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: SquarePaymentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [squareConfig, setSquareConfig] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
-  const [card, setCard] = useState<any>(null);
+  const cardRef = useRef<any>(null);
+  const paymentsRef = useRef<any>(null);
+  const containerIdRef = useRef<string>(`square-card-${Date.now()}`);
 
-  // Force re-initialization when component mounts fresh or amount changes
+  // Simple cleanup and re-initialization on amount change
   useEffect(() => {
-    if (squareConfig && window.Square) {
-      // Destroy existing instance and force complete reinitialization
-      if (card) {
-        card.destroy().catch(console.warn);
-        setCard(null);
-      }
-      
-      // Clear the container completely and force DOM refresh
-      const cardContainer = document.getElementById('card-container');
-      if (cardContainer) {
-        cardContainer.innerHTML = '';
-        // Force a complete DOM reflow
-        cardContainer.offsetHeight;
-      }
-      
-      // Clear any Square-related browser cache/state
-      if (window.Square) {
-        delete (window as any).squarePayments;
-      }
-      
-      // Longer delay to ensure complete cleanup
-      setTimeout(() => {
-        initializeSquare();
-      }, 500);
+    if (squareConfig && window.Square && isInitialized) {
+      cleanupAndReinitialize();
     }
-  }, [amount, squareConfig, card]); // Include card in dependencies for better cleanup
+  }, [amount]);
 
   useEffect(() => {
-    // Load Square configuration
-    const loadSquareConfig = async () => {
-      try {
-        const response = await fetch("/api/square-config");
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const config = await response.json();
-        console.log("Square config loaded:", config);
-        setSquareConfig(config);
-      } catch (error) {
-        console.error("Failed to load Square config:", error);
-        toast({
-          title: "Square Payment Error",
-          description: "Failed to load Square payment configuration",
-          variant: "destructive"
-        });
-      }
-    };
-
     loadSquareConfig();
-  }, [onPaymentError, toast]);
+  }, []);
 
   useEffect(() => {
-    if (!squareConfig) return;
-
-    // Check if Square is already loaded
-    if (window.Square) {
+    if (squareConfig && !isInitialized) {
       initializeSquare();
+    }
+  }, [squareConfig]);
+
+  const loadSquareConfig = async () => {
+    try {
+      const response = await fetch("/api/square-config");
+      if (!response.ok) {
+        throw new Error(`Failed to load Square config: ${response.status}`);
+      }
+      const config = await response.json();
+      setSquareConfig(config);
+    } catch (error) {
+      console.error("Square config error:", error);
+      onPaymentError("Failed to load payment configuration");
+    }
+  };
+
+  const cleanupAndReinitialize = async () => {
+    // Clean up existing instance
+    if (cardRef.current) {
+      try {
+        await cardRef.current.destroy();
+      } catch (e) {
+        console.warn("Card cleanup warning:", e);
+      }
+      cardRef.current = null;
+    }
+
+    // Generate new container ID to force fresh state
+    containerIdRef.current = `square-card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Clear and recreate container
+    const wrapper = document.getElementById('square-wrapper');
+    if (wrapper) {
+      wrapper.innerHTML = `<div id="${containerIdRef.current}"></div>`;
+    }
+
+    // Small delay then reinitialize
+    setTimeout(() => {
+      createSquareCard();
+    }, 100);
+  };
+
+  const initializeSquare = async () => {
+    if (window.Square) {
+      createSquareCard();
       return;
     }
 
-    // Load Square Web SDK - use production URL for production environment
+    // Load Square SDK
     const script = document.createElement('script');
-    const isProduction = squareConfig.environment === 'production';
+    const isProduction = squareConfig?.environment === 'production';
     script.src = isProduction 
       ? 'https://web.squarecdn.com/v1/square.js'
       : 'https://sandbox.web.squarecdn.com/v1/square.js';
-    script.async = true;
-    script.onload = initializeSquare;
-    script.onerror = () => {
-      console.error('Failed to load Square SDK');
-      onPaymentError('Failed to load Square payment system');
-    };
+    script.onload = createSquareCard;
+    script.onerror = () => onPaymentError('Failed to load Square SDK');
     document.head.appendChild(script);
+  };
 
-    return () => {
-      // Cleanup card instance when component unmounts or config changes
-      if (card) {
-        card.destroy().catch(console.warn);
-      }
-      
-      // Cleanup script when component unmounts
-      const scriptUrl = isProduction 
-        ? 'https://web.squarecdn.com/v1/square.js'
-        : 'https://sandbox.web.squarecdn.com/v1/square.js';
-      const existingScript = document.querySelector(`script[src="${scriptUrl}"]`);
-      if (existingScript) {
-        document.head.removeChild(existingScript);
-      }
-    };
-  }, [squareConfig]);
-
-  const initializeSquare = async () => {
-    if (!window.Square || !squareConfig) {
-      console.error('Square not available or config missing');
-      return;
-    }
+  const createSquareCard = async () => {
+    if (!window.Square || !squareConfig) return;
 
     try {
-      console.log('Initializing Square with completely fresh state, config:', squareConfig);
-      
-      // Generate a unique container ID to force Square to create a completely fresh instance
-      const uniqueContainerId = `square-card-container-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Get parent container and create a completely new container with unique ID
-      const parentContainer = document.getElementById('card-container-wrapper');
-      if (!parentContainer) {
-        throw new Error('Card container wrapper not found');
+      // Create payments instance (reuse if available)
+      if (!paymentsRef.current) {
+        paymentsRef.current = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
       }
-      
-      // Destroy existing card instance if it exists
-      if (card) {
-        try {
-          await card.destroy();
-          console.log('Previous card instance destroyed');
-        } catch (destroyError) {
-          console.warn('Error destroying previous card instance:', destroyError);
-        }
-        setCard(null);
-      }
-      
-      // Completely remove old container and create fresh one with unique ID
-      parentContainer.innerHTML = `<div id="${uniqueContainerId}" class="p-4 border rounded-lg min-h-[60px] bg-white"></div>`;
-      
-      // Clear any existing Square payment instances from window
-      if ((window as any).squarePayments) {
-        delete (window as any).squarePayments;
-      }
-      
-      // Force DOM refresh
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Create completely fresh payments instance with unique ID
-      const uniqueId = Date.now() + Math.random();
-      console.log(`Creating fresh Square payments instance ${uniqueId} with container ${uniqueContainerId}`);
-      
-      const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
-      // Initialize completely fresh card payment method with forced reinitialization
-      const cardInstance = await payments.card({
+      // Create card with simple configuration
+      const card = await paymentsRef.current.card({
         style: {
           input: {
             fontSize: '16px',
-            fontFamily: 'system-ui, sans-serif',
-            backgroundColor: '#ffffff',
-            color: '#333333',
-            border: '1px solid #d1d5db'
-          },
-          '.input-container': {
-            borderColor: '#d1d5db',
-            borderRadius: '8px'
-          },
-          '.input-container.is-focus': {
-            borderColor: '#2563eb'
+            fontFamily: 'system-ui, sans-serif'
           }
-        },
-        // Force Square to create a completely new instance
-        includeInputLabels: true,
-        // Remove postal code field entirely - this was causing the error
-        // Force fresh instance with no cached data
-        autocomplete: 'off'
+        }
       });
 
-      // Attach to the unique container
-      try {
-        await cardInstance.attach(`#${uniqueContainerId}`);
-        console.log(`Square card form attached successfully with instance ${uniqueId} to container ${uniqueContainerId}`);
-        
-        // Force clear any cached/pre-filled data after a delay
-        setTimeout(() => {
-          const newContainer = document.getElementById(uniqueContainerId);
-          if (newContainer) {
-            // Clear any Square iframes that might have cached data
-            const squareIframes = newContainer.querySelectorAll('iframe');
-            squareIframes.forEach(iframe => {
-              // Force iframe to reload by setting src to itself
-              const originalSrc = iframe.src;
-              iframe.src = 'about:blank';
-              setTimeout(() => {
-                iframe.src = originalSrc;
-              }, 50);
-            });
-          }
-        }, 300);
-        
-      } catch (attachError) {
-        console.log('Attachment failed, clearing and retrying...', attachError);
-        parentContainer.innerHTML = `<div id="${uniqueContainerId}" class="p-4 border rounded-lg min-h-[60px] bg-white"></div>`;
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await cardInstance.attach(`#${uniqueContainerId}`);
-        console.log('Square card form attached on retry');
-      }
+      // Attach to container
+      await card.attach(`#${containerIdRef.current}`);
+      cardRef.current = card;
+      setIsInitialized(true);
 
-      // Store fresh payments instance with unique identifier
-      (window as any).squarePayments = { payments, id: uniqueId };
-      setCard(cardInstance);
-      
     } catch (error) {
-      console.error('Failed to initialize Square:', error);
-      onPaymentError(`Failed to initialize payment form: ${error.message}`);
+      console.error('Square initialization error:', error);
+      onPaymentError(`Payment form error: ${error.message}`);
     }
   };
 
-  const forceRefreshCard = async () => {
-    console.log('Force refreshing Square card form with complete state reset...');
-    
-    // Destroy existing card instance completely
-    if (card) {
-      try {
-        await card.destroy();
-        console.log('Card instance destroyed');
-      } catch (error) {
-        console.warn('Error destroying card:', error);
-      }
-      setCard(null);
-    }
-    
-    // Clear ALL Square-related global state and cached data
-    if ((window as any).squarePayments) {
-      delete (window as any).squarePayments;
-    }
-    if ((window as any).Square) {
-      // Force clear Square's internal cache
-      try {
-        delete (window as any).Square._internal;
-        delete (window as any).Square._cache;
-      } catch (e) {
-        // Ignore errors from clearing internal Square state
-      }
-    }
-    
-    // Clear wrapper container completely
-    const wrapperContainer = document.getElementById('card-container-wrapper');
-    if (wrapperContainer) {
-      wrapperContainer.innerHTML = '<div class="p-4 border rounded-lg min-h-[60px] bg-white"><div class="text-gray-500 text-center">Refreshing payment form...</div></div>';
-    }
-    
-    // Clear any browser form data cache and Square iframes
-    const inputs = document.querySelectorAll('input[data-square*="card"]');
-    inputs.forEach(input => {
-      if (input instanceof HTMLInputElement) {
-        input.value = '';
-        input.removeAttribute('value');
-      }
-    });
-    
-    // Clear ALL Square iframes
-    const squareIframes = document.querySelectorAll('iframe[src*="square"], iframe[src*="squarecdn"]');
-    squareIframes.forEach(iframe => iframe.remove());
-    
-    // Force longer delay to ensure complete cleanup
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Reinitialize from completely clean state
-    setTimeout(() => {
-      initializeSquare();
-    }, 500);
+  const refreshCard = () => {
+    cleanupAndReinitialize();
   };
 
   const handlePayment = async () => {
-    if (!window.Square || !card) {
-      onPaymentError?.('Square payment system not ready');
+    if (!cardRef.current) {
+      onPaymentError('Payment form not ready');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // First validate the card fields
-      const result = await card.tokenize();
+      const result = await cardRef.current.tokenize();
 
       if (result.status === 'OK') {
-        console.log('Square payment token created:', result.token);
-
-        // Simulate payment processing (in a real app, send to your server)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         const paymentResult = {
           token: result.token,
           amount: amount,
@@ -330,29 +170,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           method: 'square'
         };
 
-        // Clear the form after successful payment
-        if (card) {
-          try {
-            await card.destroy();
-            setCard(null);
-            const cardContainer = document.getElementById('card-container');
-            if (cardContainer) {
-              cardContainer.innerHTML = '<div class="text-green-600 p-4 text-center">Payment processed successfully!</div>';
-            }
-          } catch (error) {
-            console.warn('Error clearing card form after payment:', error);
-          }
-        }
-        
-        onPaymentSuccess?.(paymentResult);
+        onPaymentSuccess(paymentResult);
       } else {
         const errorMessage = result.errors?.[0]?.message || 'Payment validation failed';
-        console.error('Square tokenization errors:', result.errors);
-        onPaymentError?.(errorMessage);
+        onPaymentError(errorMessage);
       }
     } catch (error: any) {
-      console.error('Square payment error:', error);
-      onPaymentError?.(error.message || 'Payment processing failed');
+      onPaymentError(error.message || 'Payment processing failed');
     } finally {
       setIsLoading(false);
     }
@@ -402,11 +226,12 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           </div>
         </div>
 
-        {/* Square Card Container Wrapper */}
-        <div id="card-container-wrapper">
-          {/* Square will inject the card form here dynamically with unique ID */}
-          <div className="p-4 border rounded-lg min-h-[60px] bg-white">
-            <div className="text-gray-500 text-center">Loading payment form...</div>
+        {/* Square Card Container */}
+        <div id="square-wrapper">
+          <div id={containerIdRef.current} className="p-4 border rounded-lg min-h-[60px] bg-white">
+            {!isInitialized && (
+              <div className="text-gray-500 text-center">Loading payment form...</div>
+            )}
           </div>
         </div>
 
@@ -414,16 +239,16 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           <span className="text-lg font-semibold">Total: ${amount.toFixed(2)}</span>
           <div className="flex gap-2">
             <Button 
-              onClick={forceRefreshCard}
+              onClick={refreshCard}
               variant="outline"
               size="sm"
               disabled={isLoading}
             >
-              Refresh Form
+              Refresh
             </Button>
             <Button 
               onClick={handlePayment} 
-              disabled={isLoading || !window.Square || !card}
+              disabled={isLoading || !isInitialized}
               className="bg-black hover:bg-gray-800 text-white"
             >
               {isLoading ? (
@@ -432,7 +257,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
                   Processing...
                 </>
               ) : (
-                `Pay $${amount.toFixed(2)} with Square`
+                `Pay $${amount.toFixed(2)}`
               )}
             </Button>
           </div>
