@@ -1033,6 +1033,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cart operations
+  app.get("/api/cart", (req, res) => {
+    try {
+      // For now, return empty cart since we're using client-side storage
+      res.json({ items: [], total: 0 });
+    } catch (error) {
+      console.error("Cart fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch cart" });
+    }
+  });
+
+  app.post("/api/cart/add", (req, res) => {
+    try {
+      const { productId, quantity } = req.body;
+      // Since we're using client-side cart storage, just acknowledge the request
+      res.json({ success: true, message: "Item added to cart" });
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      res.status(500).json({ error: "Failed to add item to cart" });
+    }
+  });
+
   // Add Stripe payment route
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
@@ -1324,6 +1346,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   
+
+  // Orders endpoint for checkout
+  app.post("/api/orders", async (req, res) => {
+    try {
+      console.log('=== ORDER CREATION ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+      const { items, total, shippingAddress, paymentMethod = 'stripe' } = req.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "No items provided" });
+      }
+
+      if (!total || total <= 0) {
+        return res.status(400).json({ error: "Invalid total amount" });
+      }
+
+      // For now, simulate order creation without user authentication
+      const order = {
+        id: Date.now(),
+        items,
+        total,
+        shippingAddress,
+        paymentMethod,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      console.log('Order created:', order);
+
+      res.status(201).json({ 
+        success: true,
+        order,
+        message: "Order created successfully" 
+      });
+    } catch (error: any) {
+      console.error("Order creation error:", error);
+      res.status(500).json({
+        error: "Failed to create order",
+        details: error.message
+      });
+    }
+  });
 
   // Catch-all route for client-side routing - must be last
   app.get('*', (req, res, next) => {
