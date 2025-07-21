@@ -603,6 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (isFirstUser) {
         userData.isAdmin = true;
+        console.log('First user detected - granting admin privileges');
       }
 
       const existingUser = await storage.getUserByUsername(userData.username);
