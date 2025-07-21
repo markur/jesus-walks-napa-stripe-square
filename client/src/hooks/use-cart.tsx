@@ -141,7 +141,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ...product,
       price: typeof product.price === 'string' ? parseFloat(product.price) : product.price
     };
-    
+
     dispatch({ type: 'ADD_ITEM', payload: sanitizedProduct });
     try {
       toastFn({

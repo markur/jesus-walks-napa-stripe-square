@@ -939,6 +939,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Debug endpoint for payment troubleshooting
+  app.post("/api/debug/payment-data", (req, res) => {
+    console.log('=== PAYMENT DEBUG ENDPOINT ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Headers:', req.headers);
+    
+    const { amount } = req.body;
+    
+    res.json({
+      received: {
+        amount,
+        type: typeof amount,
+        isValid: !!(amount && amount > 0),
+        fullBody: req.body
+      },
+      validation: {
+        exists: !!amount,
+        isNumber: typeof amount === 'number',
+        isPositive: amount > 0,
+        isFinite: Number.isFinite(amount)
+      }
+    });
+  });
+
   // Environment variables check endpoint (for debugging)
   app.get("/api/env-check", (req, res) => {
     const envStatus = {
@@ -955,13 +979,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add Stripe payment route
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      console.log('Creating payment intent, request body:', req.body);
+      console.log('=== PAYMENT INTENT CREATION DEBUG ===');
+      console.log('Full request body:', JSON.stringify(req.body, null, 2));
+      console.log('Request headers:', req.headers);
+      console.log('Content-Type:', req.headers['content-type']);
 
       const { amount } = req.body;
 
+      console.log('Extracted amount:', amount);
+      console.log('Amount type:', typeof amount);
+      console.log('Amount is number:', typeof amount === 'number');
+      console.log('Amount > 0:', amount > 0);
+      console.log('Amount truthy:', !!amount);
+
       if (!amount || amount <= 0) {
-        console.log('Invalid amount received:', amount);
-        return res.status(400).json({ error: "Invalid amount" });
+        console.log('❌ VALIDATION FAILED - Invalid amount received:', amount);
+        console.log('Amount check results:', {
+          exists: !!amount,
+          isPositive: amount > 0,
+          type: typeof amount,
+          value: amount
+        });
+        return res.status(400).json({ 
+          error: "Invalid amount",
+          debug: {
+            receivedAmount: amount,
+            type: typeof amount,
+            requestBody: req.body
+          }
+        });
       }
 
       // Check if Stripe is properly configured

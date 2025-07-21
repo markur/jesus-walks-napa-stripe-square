@@ -281,11 +281,22 @@ function CheckoutForm() {
     }
 
     try {
-      console.log('Creating payment intent for amount:', total + (selectedRate?.rate || 0));
+        const finalAmount = total + (selectedRate?.rate || 0);
 
-      const response = await apiRequest("POST", "/api/create-payment-intent", {
-        amount: total + (selectedRate?.rate || 0)
-      });
+        console.log('=== CHECKOUT PAYMENT DEBUG ===');
+        console.log('Cart total:', total);
+        console.log('Selected rate:', selectedRate);
+        console.log('Shipping rate:', selectedRate?.rate);
+        console.log('Final amount:', finalAmount);
+        console.log('Final amount type:', typeof finalAmount);
+        console.log('Final amount > 0:', finalAmount > 0);
+
+        const paymentData = {
+          amount: finalAmount
+        };
+        console.log('Payment request data:', JSON.stringify(paymentData, null, 2));
+
+        const response = await apiRequest("POST", "/api/create-payment-intent", paymentData);
 
       if (!response.ok) {
         const errorText = await response.text();
