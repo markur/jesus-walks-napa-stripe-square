@@ -3,8 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { CheckCircle } from "lucide-react";
+import { useCart } from "@/hooks/use-cart";
+import { useEffect } from "react";
 
 export default function OrderConfirmation() {
+  const { clearCart } = useCart();
+
+  useEffect(() => {
+    clearCart();
+  }, []);
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">

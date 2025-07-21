@@ -674,7 +674,8 @@ export default function Checkout() {
   const [clientSecret, setClientSecret] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
-  const { state: { total, items } } = useCart();
+  const { state: { total, items }, clearCart } = useCart();
+  const [location] = useLocation();
 
   // Create payment intent when component mounts
   useEffect(() => {

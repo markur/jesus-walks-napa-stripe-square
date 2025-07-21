@@ -43,6 +43,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   const [isLoading, setIsLoading] = useState(false);
   const [squareConfig, setSquareConfig] = useState<any>(null);
   const { toast } = useToast();
+  const [card, setCard] = useState<any>(null);
 
   useEffect(() => {
     // Load Square configuration
@@ -121,7 +122,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       cardContainer.innerHTML = '';
 
       // Initialize card payment method
-      const card = await payments.card({
+      const cardInstance = await payments.card({
         style: {
           input: {
             fontSize: '16px',
@@ -136,12 +137,12 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         }
       });
 
-      await card.attach('#card-container');
+      await cardInstance.attach('#card-container');
       console.log('Square card form attached successfully');
 
       // Store payments instance for later use
       (window as any).squarePayments = payments;
-      (window as any).squareCard = card;
+      setCard(cardInstance);
     } catch (error) {
       console.error('Failed to initialize Square:', error);
       onPaymentError(`Failed to initialize payment form: ${error.message}`);
@@ -149,47 +150,39 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   };
 
   const handlePayment = async () => {
-    console.log('Square payment button clicked');
-    
-    if (!window.Square || !(window as any).squareCard) {
-      console.error('Square not ready:', { 
-        Square: !!window.Square, 
-        card: !!(window as any).squareCard 
-      });
-      onPaymentError('Payment system not ready');
+    if (!window.Square || !card) {
+      onPaymentError?.('Square payment system not ready');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      console.log('Attempting to tokenize Square payment...');
-      const result = await (window as any).squareCard.tokenize();
-      console.log('Square tokenization result:', result);
+      // First validate the card fields
+      const result = await card.tokenize();
 
       if (result.status === 'OK') {
-        console.log('Square payment tokenization successful');
-        
-        toast({
-          title: "Payment Processed",
-          description: `Square payment of $${amount.toFixed(2)} completed successfully!`,
-        });
+        console.log('Square payment token created:', result.token);
 
-        onPaymentSuccess({
+        // Simulate payment processing (in a real app, send to your server)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const paymentResult = {
           token: result.token,
           amount: amount,
-          processor: 'square'
-        });
+          timestamp: new Date().toISOString(),
+          method: 'square'
+        };
+
+        onPaymentSuccess?.(paymentResult);
       } else {
-        console.error('Square tokenization failed:', result);
-        // Handle tokenization errors
-        const errorMessage = result.errors?.[0]?.message || result.errors?.[0]?.detail || 'Payment failed';
-        console.error('Square error message:', errorMessage);
-        onPaymentError(errorMessage);
+        const errorMessage = result.errors?.[0]?.message || 'Payment validation failed';
+        console.error('Square tokenization errors:', result.errors);
+        onPaymentError?.(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Square payment error:', error);
-      onPaymentError(`Payment processing failed: ${error.message || 'Unknown error'}`);
+      onPaymentError?.(error.message || 'Payment processing failed');
     } finally {
       setIsLoading(false);
     }
