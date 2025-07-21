@@ -970,6 +970,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(envStatus);
   });
 
+  // Checkout payment intent endpoint
+  app.post("/api/checkout/create-payment-intent", async (req, res) => {
+    try {
+      console.log('=== CHECKOUT PAYMENT INTENT CREATION ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+      const { items, shippingAddress } = req.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "No items provided" });
+      }
+
+      // Calculate total from items
+      let total = 0;
+      for (const item of items) {
+        const price = parseFloat(item.price);
+        const quantity = parseInt(item.quantity);
+        if (isNaN(price) || isNaN(quantity)) {
+          return res.status(400).json({ error: "Invalid item price or quantity" });
+        }
+        total += price * quantity;
+      }
+
+      console.log('Calculated total:', total);
+
+      if (total <= 0) {
+        return res.status(400).json({ error: "Invalid total amount" });
+      }
+
+      // Check if Stripe is configured
+      if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === '') {
+        console.error('Stripe secret key not configured');
+        return res.status(500).json({ error: "Payment system not configured" });
+      }
+
+      // Create Stripe payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(total * 100), // Convert to cents
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          items: JSON.stringify(items),
+          shipping_address: JSON.stringify(shippingAddress)
+        }
+      });
+
+      console.log('Payment intent created:', paymentIntent.id);
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        total: total
+      });
+    } catch (error: any) {
+      console.error("Checkout payment intent error:", error);
+      res.status(500).json({
+        error: "Error creating payment intent",
+        details: error.message
+      });
+    }
+  });
+
   // Add Stripe payment route
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
