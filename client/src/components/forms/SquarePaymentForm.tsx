@@ -63,6 +63,12 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   useEffect(() => {
     if (!squareConfig) return;
 
+    // Check if Square is already loaded
+    if (window.Square) {
+      initializeSquare();
+      return;
+    }
+
     // Load Square Web SDK - use production URL for production environment
     const script = document.createElement('script');
     const isProduction = squareConfig.environment === 'production';
@@ -71,6 +77,10 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       : 'https://sandbox.web.squarecdn.com/v1/square.js';
     script.async = true;
     script.onload = initializeSquare;
+    script.onerror = () => {
+      console.error('Failed to load Square SDK');
+      onPaymentError('Failed to load Square payment system');
+    };
     document.head.appendChild(script);
 
     return () => {
@@ -86,21 +96,40 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   }, [squareConfig]);
 
   const initializeSquare = async () => {
-    if (!window.Square || !squareConfig) return;
+    if (!window.Square || !squareConfig) {
+      console.error('Square not available or config missing');
+      return;
+    }
 
     try {
-      const payments = window.Square.payments(squareConfig.applicationId, squareConfig.environment);
+      console.log('Initializing Square with config:', squareConfig);
+      const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
       // Initialize card payment method
-      const card = await payments.card();
+      const card = await payments.card({
+        style: {
+          input: {
+            fontSize: '16px',
+            fontFamily: 'system-ui, sans-serif',
+            backgroundColor: '#ffffff'
+          }
+        }
+      });
+
+      const cardContainer = document.getElementById('card-container');
+      if (!cardContainer) {
+        throw new Error('Card container not found');
+      }
+
       await card.attach('#card-container');
+      console.log('Square card form attached successfully');
 
       // Store payments instance for later use
       (window as any).squarePayments = payments;
       (window as any).squareCard = card;
     } catch (error) {
       console.error('Failed to initialize Square:', error);
-      onPaymentError('Failed to initialize payment form');
+      onPaymentError(`Failed to initialize payment form: ${error.message}`);
     }
   };
 
@@ -184,11 +213,16 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           </div>
         </div>
 
+        {/* Square Card Container */}
+        <div id="card-container" className="p-4 border rounded-lg min-h-[60px] bg-white">
+          {/* Square will inject the card form here */}
+        </div>
+
         <div className="flex justify-between items-center">
           <span className="text-lg font-semibold">Total: ${amount.toFixed(2)}</span>
           <Button 
             onClick={handlePayment} 
-            disabled={isLoading}
+            disabled={isLoading || !window.Square}
             className="bg-black hover:bg-gray-800 text-white"
           >
             {isLoading ? (

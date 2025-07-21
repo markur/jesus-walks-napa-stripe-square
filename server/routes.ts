@@ -1116,6 +1116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicationId: isDevelopment 
           ? 'sandbox-sq0idb-b3G3QhqMv8dmZkEJnG10kw'
           : 'sq0idp-C-wqKe8QpQAHwg3YtLziEw',
+        locationId: isDevelopment
+          ? 'LQRR5GPG5P4QY' // Sandbox location ID
+          : 'YOUR_PRODUCTION_LOCATION_ID', // Replace with your production location ID
         environment: isDevelopment ? 'sandbox' : 'production'
       });
     } catch (error: any) {

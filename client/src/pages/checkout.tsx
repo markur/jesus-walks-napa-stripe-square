@@ -260,116 +260,37 @@ function CheckoutForm() {
 
   const handleSubmit = async (data: BillingForm) => {
     if (!selectedRate || !shippingAddress) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete shipping information",
+        variant: "destructive",
+      });
       return;
     }
 
     // Only require Stripe elements if using Stripe payment
     if (paymentMethod === 'stripe' && (!stripe || !elements)) {
+      setPaymentError('Payment system not ready');
+      return;
+    }
+
+    // Prevent double submission
+    if (isProcessing) {
       return;
     }
 
     setIsProcessing(true);
     setPaymentError(null);
 
-    const handleStripePayment = async (formData: BillingForm) => {
-    if (!stripe || !elements) return;
-
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setPaymentError(submitError.message || 'Payment submission failed');
-      return;
-    }
-
     try {
-        const finalAmount = total + (selectedRate?.rate || 0);
-
-        console.log('=== CHECKOUT PAYMENT DEBUG ===');
-        console.log('Cart total:', total);
-        console.log('Selected rate:', selectedRate);
-        console.log('Shipping rate:', selectedRate?.rate);
-        console.log('Final amount:', finalAmount);
-        console.log('Final amount type:', typeof finalAmount);
-        console.log('Final amount > 0:', finalAmount > 0);
-
-        const paymentData = {
-          amount: finalAmount
-        };
-        console.log('Payment request data:', JSON.stringify(paymentData, null, 2));
-
-        const response = await apiRequest("POST", "/api/create-payment-intent", paymentData);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Payment intent creation failed:', response.status, errorText);
-        throw new Error(`Failed to create payment intent: ${response.status}`);
-      }
-
-      const responseText = await response.text();
-      console.log('Payment intent response:', responseText);
-
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse payment intent response as JSON:', responseText);
-        throw new Error('Invalid response from payment server');
-      }
-
-      const { clientSecret } = responseData;
-
-      if (!clientSecret) {
-        throw new Error('No client secret received from server');
-      }
-
-      console.log('Confirming payment with client secret');
-
-      const { error } = await stripe.confirmPayment({
-        elements,
-        clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/order-confirmation`,
-          payment_method_data: {
-            billing_details: {
-              name: formData.name,
-              email: formData.email,
-            },
-          },
-        },
-      });
-
-      if (error) {
-        console.error('Stripe payment confirmation error:', error);
-        setPaymentError(error.message || 'Payment failed');
-      } else {
-        console.log('Payment succeeded, creating order');
-        try {
-          // Payment succeeded, create order
-          const orderResponse = await apiRequest("POST", "/api/orders", {
-            items,
-            total: total + (selectedRate?.rate || 0),
-            shippingAddress,
-            paymentMethod: 'stripe'
-          });
-
-          if (orderResponse.ok) {
-            clearCart();
-            setLocation('/order-confirmation');
-          } else {
-            throw new Error('Order creation failed');
-          }
-        } catch (orderError: any) {
-          console.error('Order creation error:', orderError);
-          setPaymentError('Payment successful but order creation failed. Please contact support.');
-        }
+      if (paymentMethod === 'stripe') {
+        await handleStripePayment(data);
       }
     } catch (error: any) {
-      console.error('Payment processing error:', error);
-      setPaymentError(error.message || 'Payment processing failed');
-    }
-  };
-
-    if (paymentMethod === 'stripe') {
-      await handleStripePayment(data);
+      console.error('Submit error:', error);
+      setPaymentError(error.message || 'Payment failed');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
