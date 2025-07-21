@@ -1,75 +1,38 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient } from "@tanstack/react-query";
 
-// Create and export the query client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 2,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
   },
 });
 
-// API helper function
-export async function apiRequest(
-  method: "GET" | "POST" | "PUT" | "DELETE",
-  url: string,
-  data?: any
-): Promise<Response> {
-  console.log(`=== API REQUEST: ${method} ${url} ===`);
+export async function apiRequest(url: string, options: RequestInit = {}) {
+  const baseUrl = window.location.origin;
+  const fullUrl = `${baseUrl}${url}`;
 
-  if (data) {
-    console.log('Request data:', JSON.stringify(data, null, 2));
-    console.log('Data type:', typeof data);
-    console.log('Data constructor:', data.constructor.name);
-  }
+  console.log(`API Request: ${options.method || 'GET'} ${fullUrl}`);
 
-  const config: RequestInit = {
-    method,
-    credentials: "include",
+  const response = await fetch(fullUrl, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
+      ...options.headers,
     },
-  };
-
-  if (data) {
-    config.body = JSON.stringify(data);
-    console.log('Stringified body:', config.body);
-  }
-
-  console.log('Full request config:', {
-    ...config,
-    body: config.body ? 'JSON data present' : 'No body'
+    credentials: 'include',
+    ...options,
   });
 
-  try {
-    const response = await fetch(url, config);
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
-
-    // Log response body for debugging
-    if (!response.ok) {
-      const responseText = await response.text();
-      console.error('Error response body:', responseText);
-
-      // Try to determine if it's HTML or JSON
-      if (responseText.trim().startsWith('<')) {
-        console.error('Received HTML instead of JSON - likely a 404 or server error');
-        throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
-      }
-
-      // Re-create response object since we consumed the body
-      return new Response(responseText, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers
-      });
-    }
-
-    return response;
-  } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`API Error: ${response.status} ${response.statusText}`, errorText);
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+
+  const data = await response.json();
+  console.log(`API Response:`, data);
+  return data;
 }

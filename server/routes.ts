@@ -771,33 +771,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (req, res) => {
     try {
-      console.log('=== PRODUCTS ENDPOINT DEBUG ===');
-      console.log('Request method:', req.method);
-      console.log('Request URL:', req.url);
-      console.log('Request path:', req.path);
-      console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-      console.log('Session info:', req.session ? { id: req.session.id, userId: req.session.userId } : 'No session');
+      console.log('=== PRODUCTS API REQUEST ===');
+      console.log('Fetching products from storage...');
       
-      console.log('Attempting to fetch products from storage...');
       const products = await storage.getAllProducts();
-      console.log(`Storage returned ${products ? products.length : 0} products`);
-      console.log('Raw products data:', JSON.stringify(products, null, 2));
-
-      // Ensure we always return an array
       const productsArray = Array.isArray(products) ? products : [];
-      console.log('Processed products array length:', productsArray.length);
-      console.log('Response data preview:', productsArray.slice(0, 2));
       
-      console.log('Sending response with products...');
+      console.log(`Found ${productsArray.length} products`);
+      
+      res.setHeader('Content-Type', 'application/json');
       res.json(productsArray);
-      console.log('=== PRODUCTS ENDPOINT COMPLETE ===');
+      
+      console.log('Products response sent successfully');
     } catch (error) {
-      console.error('=== PRODUCTS ENDPOINT ERROR ===');
-      console.error('Error type:', typeof error);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      console.error('Full error object:', error);
-      res.status(500).json({ error: 'Failed to fetch products', message: error.message });
+      console.error('Products API error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch products', 
+        message: error.message,
+        success: false 
+      });
     }
   });
 
