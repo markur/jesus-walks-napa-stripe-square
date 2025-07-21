@@ -861,8 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: "Jesus Walks Napa Valley Wine",
           description: "Premium wine from the beautiful vineyards of Napa Valley",
           price: "49.99",
-          imageUrl:```text
-"/assets/napa-valley-vineyard.webp",
+          imageUrl: "/assets/napa-valley-vineyard.webp",
           category: "Wine",
           stock: 100
         },
