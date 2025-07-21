@@ -176,17 +176,17 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       
       // Force multiple DOM refresh cycles to ensure clean state
       cardContainer.style.display = 'none';
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
       cardContainer.style.display = 'block';
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       // Create completely fresh payments instance with unique ID
-      const uniqueId = Date.now();
+      const uniqueId = Date.now() + Math.random();
       console.log(`Creating fresh Square payments instance ${uniqueId}`);
       
       const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
-      // Initialize completely fresh card payment method with additional config
+      // Initialize completely fresh card payment method with forced reinitialization
       const cardInstance = await payments.card({
         style: {
           input: {
@@ -194,7 +194,6 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
             fontFamily: 'system-ui, sans-serif',
             backgroundColor: '#ffffff',
             color: '#333333',
-            // Force fresh styling
             border: '1px solid #d1d5db'
           },
           '.input-container': {
@@ -204,12 +203,23 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           '.input-container.is-focus': {
             borderColor: '#2563eb'
           }
-        }
+        },
+        // Force Square to create a completely new instance
+        includeInputLabels: true,
+        postalCode: false
       });
 
-      // Attach to container
-      await cardInstance.attach('#card-container');
-      console.log(`Square card form attached successfully with instance ${uniqueId}`);
+      // Detach any existing instances first, then attach fresh
+      try {
+        await cardInstance.attach('#card-container');
+        console.log(`Square card form attached successfully with instance ${uniqueId}`);
+      } catch (attachError) {
+        console.log('Attachment failed, clearing and retrying...', attachError);
+        cardContainer.innerHTML = '';
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await cardInstance.attach('#card-container');
+        console.log('Square card form attached on retry');
+      }
 
       // Store fresh payments instance with unique identifier
       (window as any).squarePayments = { payments, id: uniqueId };
@@ -219,6 +229,41 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       console.error('Failed to initialize Square:', error);
       onPaymentError(`Failed to initialize payment form: ${error.message}`);
     }
+  };
+
+  const forceRefreshCard = async () => {
+    console.log('Force refreshing Square card form...');
+    
+    // Destroy existing card instance completely
+    if (card) {
+      try {
+        await card.destroy();
+        console.log('Card instance destroyed');
+      } catch (error) {
+        console.warn('Error destroying card:', error);
+      }
+      setCard(null);
+    }
+    
+    // Clear any Square global state
+    if ((window as any).squarePayments) {
+      delete (window as any).squarePayments;
+    }
+    
+    // Clear container completely
+    const cardContainer = document.getElementById('card-container');
+    if (cardContainer) {
+      cardContainer.innerHTML = '';
+      cardContainer.className = 'p-4 border rounded-lg min-h-[60px] bg-white';
+    }
+    
+    // Force DOM refresh cycle
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Reinitialize from scratch
+    setTimeout(() => {
+      initializeSquare();
+    }, 200);
   };
 
   const handlePayment = async () => {
@@ -327,14 +372,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           <span className="text-lg font-semibold">Total: ${amount.toFixed(2)}</span>
           <div className="flex gap-2">
             <Button 
-              onClick={() => {
-                if (card) {
-                  card.destroy().then(() => {
-                    setCard(null);
-                    setTimeout(initializeSquare, 200);
-                  }).catch(console.warn);
-                }
-              }}
+              onClick={forceRefreshCard}
               variant="outline"
               size="sm"
               disabled={isLoading}
