@@ -26,6 +26,11 @@ export default function OrderConfirmation() {
                     Continue Shopping
                   </Button>
                 </Link>
+                <Link href="/">
+                  <Button variant="outline" className="w-full">
+                    Back to Home
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

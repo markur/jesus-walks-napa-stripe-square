@@ -164,9 +164,23 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-4 border rounded-lg">
-          <div id="card-container" className="min-h-[120px]">
-            {/* Square card form will be injected here */}
+        <div className="p-4 border rounded-lg bg-gray-50">
+          <div className="text-sm text-gray-600 mb-3">
+            <strong>Test Card Information:</strong>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Card Number:</span>
+              <span className="font-mono">4111 1111 1111 1111</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Expiry:</span>
+              <span>12/25</span>
+            </div>
+            <div className="flex justify-between">
+              <span>CVV:</span>
+              <span>123</span>
+            </div>
           </div>
         </div>
 

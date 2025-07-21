@@ -342,16 +342,25 @@ function CheckoutForm() {
         setPaymentError(error.message || 'Payment failed');
       } else {
         console.log('Payment succeeded, creating order');
-        // Payment succeeded, create order
-        await apiRequest("POST", "/api/orders", {
-          items,
-          total: total + (selectedRate?.rate || 0),
-          shippingAddress,
-          paymentMethod: 'stripe'
-        });
+        try {
+          // Payment succeeded, create order
+          const orderResponse = await apiRequest("POST", "/api/orders", {
+            items,
+            total: total + (selectedRate?.rate || 0),
+            shippingAddress,
+            paymentMethod: 'stripe'
+          });
 
-        clearCart();
-        setLocation('/order-confirmation');
+          if (orderResponse.ok) {
+            clearCart();
+            setLocation('/order-confirmation');
+          } else {
+            throw new Error('Order creation failed');
+          }
+        } catch (orderError: any) {
+          console.error('Order creation error:', orderError);
+          setPaymentError('Payment successful but order creation failed. Please contact support.');
+        }
       }
     } catch (error: any) {
       console.error('Payment processing error:', error);
