@@ -45,6 +45,16 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   const { toast } = useToast();
   const [card, setCard] = useState<any>(null);
 
+  // Force re-initialization when component mounts fresh
+  useEffect(() => {
+    if (squareConfig && window.Square) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        initializeSquare();
+      }, 200);
+    }
+  }, [amount]); // Re-initialize when amount changes (new transaction)
+
   useEffect(() => {
     // Load Square configuration
     const loadSquareConfig = async () => {
@@ -93,6 +103,11 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     document.head.appendChild(script);
 
     return () => {
+      // Cleanup card instance when component unmounts or config changes
+      if (card) {
+        card.destroy().catch(console.warn);
+      }
+      
       // Cleanup script when component unmounts
       const scriptUrl = isProduction 
         ? 'https://web.squarecdn.com/v1/square.js'
@@ -114,14 +129,28 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       console.log('Initializing Square with config:', squareConfig);
       const payments = window.Square.payments(squareConfig.applicationId, squareConfig.locationId);
 
-      // Clear any existing card form first
+      // Clear any existing card form and destroy previous instance
       const cardContainer = document.getElementById('card-container');
       if (!cardContainer) {
         throw new Error('Card container not found');
       }
+      
+      // Destroy existing card instance if it exists
+      if (card) {
+        try {
+          await card.destroy();
+        } catch (destroyError) {
+          console.warn('Error destroying previous card instance:', destroyError);
+        }
+      }
+      
+      // Clear container completely
       cardContainer.innerHTML = '';
+      
+      // Force a small delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Initialize card payment method
+      // Initialize fresh card payment method with cleared state
       const cardInstance = await payments.card({
         style: {
           input: {
@@ -138,7 +167,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       });
 
       await cardInstance.attach('#card-container');
-      console.log('Square card form attached successfully');
+      console.log('Square card form attached successfully with fresh state');
 
       // Store payments instance for later use
       (window as any).squarePayments = payments;
