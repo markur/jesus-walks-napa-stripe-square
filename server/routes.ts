@@ -774,14 +774,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Products endpoint accessed');
       const products = await storage.getAllProducts();
       console.log(`Found ${products.length} products`);
+      console.log('Products data:', products.map(p => ({ id: p.id, name: p.name, price: p.price })));
 
       // Ensure we always return an array
       const productsArray = Array.isArray(products) ? products : [];
       res.json(productsArray);
     } catch (error) {
       console.error('Products fetch error:', error);
-      // Return empty array instead of error to prevent frontend crash
-      res.json([]);
+      res.status(500).json({ error: 'Failed to fetch products', message: error.message });
     }
   });
 

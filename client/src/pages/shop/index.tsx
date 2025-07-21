@@ -9,7 +9,12 @@ import type { Product } from "@shared/schema";
 export default function Shop() {
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["/api/products"],
-    queryFn: () => apiRequest("/api/products"),
+    queryFn: async () => {
+      console.log('Fetching products from API...');
+      const result = await apiRequest("/api/products");
+      console.log('API response:', result);
+      return result;
+    },
     retry: 3,
     retryDelay: 1000,
   });
