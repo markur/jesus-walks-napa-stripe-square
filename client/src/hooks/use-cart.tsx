@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import type { Product } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,6 +30,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.id === action.payload.id);
       if (existingItem) {
+        const price = typeof action.payload.price === 'string' 
+          ? parseFloat(action.payload.price) 
+          : Number(action.payload.price);
         return {
           ...state,
           items: state.items.map(item =>
@@ -37,13 +40,16 @@ function cartReducer(state: CartState, action: CartAction): CartState {
               ? { ...item, quantity: item.quantity + 1 }
               : item
           ),
-          total: state.total + Number(action.payload.price)
+          total: state.total + price
         };
       }
+      const price = typeof action.payload.price === 'string' 
+        ? parseFloat(action.payload.price) 
+        : Number(action.payload.price);
       return {
         ...state,
         items: [...state.items, { ...action.payload, quantity: 1 }],
-        total: state.total + Number(action.payload.price)
+        total: state.total + price
       };
     }
     case 'REMOVE_ITEM': {
@@ -85,8 +91,39 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
+const CART_STORAGE_KEY = 'jesus_walks_cart';
+
+function loadCartFromStorage(): CartState {
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Validate the structure
+      if (parsed && Array.isArray(parsed.items) && typeof parsed.total === 'number') {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load cart from storage:', error);
+  }
+  return { items: [], total: 0 };
+}
+
+function saveCartToStorage(state: CartState) {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('Failed to save cart to storage:', error);
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
+  const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 }, loadCartFromStorage);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    saveCartToStorage(state);
+  }, [state]);
 
   // Safely get toast function with error handling
   let toastFn: any;
@@ -99,7 +136,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const addItem = (product: Product) => {
-    dispatch({ type: 'ADD_ITEM', payload: product });
+    // Ensure price is a valid number
+    const sanitizedProduct = {
+      ...product,
+      price: typeof product.price === 'string' ? parseFloat(product.price) : product.price
+    };
+    
+    dispatch({ type: 'ADD_ITEM', payload: sanitizedProduct });
     try {
       toastFn({
         title: 'Added to cart',

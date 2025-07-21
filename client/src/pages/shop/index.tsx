@@ -55,6 +55,15 @@ export default function Shop() {
   console.log("Shop products query result:", { products, isLoading, error });
   const { addItem } = useCart();
 
+  const handleAddToCart = (product: Product) => {
+    try {
+      addItem(product);
+    } catch (e) {
+      console.error("Failed to add item to cart", e);
+      alert("Failed to add item to cart");
+    }
+  };
+
 
   return (
     <MainLayout>
@@ -96,12 +105,12 @@ export default function Shop() {
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className="w-full" 
-                    onClick={() => addItem(product)}
-                    disabled={product.stock <= 0}
-                  >
-                    {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                  </Button>
+                      onClick={() => handleAddToCart(product)}
+                      className="w-full"
+                      disabled={product.stock <= 0}
+                    >
+                      {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                    </Button>
                 </CardFooter>
               </Card>
             ))}
