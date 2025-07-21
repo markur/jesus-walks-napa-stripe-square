@@ -206,13 +206,27 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         },
         // Force Square to create a completely new instance
         includeInputLabels: true,
-        postalCode: false
+        postalCode: false,
+        // Force fresh instance with no cached data
+        autocomplete: 'off'
       });
 
       // Detach any existing instances first, then attach fresh
       try {
         await cardInstance.attach('#card-container');
         console.log(`Square card form attached successfully with instance ${uniqueId}`);
+        
+        // Clear any pre-filled test data after attachment
+        setTimeout(() => {
+          const squareInputs = cardContainer.querySelectorAll('input');
+          squareInputs.forEach(input => {
+            if (input.value && (input.value.includes('4111') || input.value === '12/25' || input.value === '123')) {
+              input.value = '';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          });
+        }, 100);
+        
       } catch (attachError) {
         console.log('Attachment failed, clearing and retrying...', attachError);
         cardContainer.innerHTML = '';
@@ -232,7 +246,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   };
 
   const forceRefreshCard = async () => {
-    console.log('Force refreshing Square card form...');
+    console.log('Force refreshing Square card form with complete state reset...');
     
     // Destroy existing card instance completely
     if (card) {
@@ -245,25 +259,52 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       setCard(null);
     }
     
-    // Clear any Square global state
+    // Clear ALL Square-related global state and cached data
     if ((window as any).squarePayments) {
       delete (window as any).squarePayments;
     }
+    if ((window as any).Square) {
+      // Force clear Square's internal cache
+      try {
+        delete (window as any).Square._internal;
+        delete (window as any).Square._cache;
+      } catch (e) {
+        // Ignore errors from clearing internal Square state
+      }
+    }
     
-    // Clear container completely
+    // Clear container completely and reset all attributes
     const cardContainer = document.getElementById('card-container');
     if (cardContainer) {
       cardContainer.innerHTML = '';
       cardContainer.className = 'p-4 border rounded-lg min-h-[60px] bg-white';
+      cardContainer.removeAttribute('data-square-card-container');
+      // Force browser to clear any cached form data
+      cardContainer.style.display = 'none';
+      cardContainer.offsetHeight; // Force reflow
+      cardContainer.style.display = 'block';
     }
     
-    // Force DOM refresh cycle
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Clear any browser form data cache
+    const inputs = document.querySelectorAll('input[data-square*="card"]');
+    inputs.forEach(input => {
+      if (input instanceof HTMLInputElement) {
+        input.value = '';
+        input.removeAttribute('value');
+      }
+    });
     
-    // Reinitialize from scratch
+    // Clear Square iframes if they exist
+    const squareIframes = document.querySelectorAll('iframe[src*="square"]');
+    squareIframes.forEach(iframe => iframe.remove());
+    
+    // Force longer delay to ensure complete cleanup
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Reinitialize from completely clean state
     setTimeout(() => {
       initializeSquare();
-    }, 200);
+    }, 500);
   };
 
   const handlePayment = async () => {
