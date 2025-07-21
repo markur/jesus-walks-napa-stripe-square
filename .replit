@@ -68,5 +68,14 @@ mode = "sequential"
 task = "shell.exec"
 args = "NODE_ENV=production npm start"
 
+[[workflows.workflow]]
+name = "Clean Dev Start"
+author = 40521121
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
 [objectStorage]
 defaultBucketID = "replit-objstore-3494e7b6-12cb-45b2-87ad-9dabb2b1782e"
