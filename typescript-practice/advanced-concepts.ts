@@ -52,14 +52,14 @@ type UserUpdate = Partial<BaseUser>;
 
 // Practice with your existing codebase patterns
 const eventManager = new EventManager();
-eventManager.addEvent("Napa Valley Hike");
+eventManager.addEvent("Jesus Walks Napa");
 console.log("Events:", eventManager.getEvents());
 
 const order: Order = {
   id: "order-123",
-  status: "pending",
-  amount: 49.99
+  status: "approved",
+  amount: 53.58
 };
 
 console.log("Order status:", order.status);
-console.log("Payment method:", PaymentMethod.APPLE_PAY);
+console.log("Payment method:", PaymentMethod.CREDIT_CARD);
