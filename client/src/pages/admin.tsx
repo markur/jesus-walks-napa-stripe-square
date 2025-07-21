@@ -845,17 +845,22 @@ export default function AdminDashboard() {
                 <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem' }}>
                   {(() => {
                     try {
-                      const addr = JSON.parse(viewingOrder.shippingAddress);
+                      // Handle both JSON string and object formats
+                      const addr = typeof viewingOrder.shippingAddress === 'string' 
+                        ? JSON.parse(viewingOrder.shippingAddress)
+                        : viewingOrder.shippingAddress;
+                      
                       return (
                         <div>
-                          <div>{addr.fullName}</div>
-                          <div>{addr.street}</div>
-                          <div>{addr.city}, {addr.state} {addr.zipCode}</div>
-                          <div>{addr.country}</div>
+                          <div>{addr.fullName || 'N/A'}</div>
+                          <div>{addr.street || 'N/A'}</div>
+                          <div>{addr.city || 'N/A'}, {addr.state || 'N/A'} {addr.zipCode || 'N/A'}</div>
+                          <div>{addr.country || 'N/A'}</div>
                         </div>
                       );
-                    } catch {
-                      return <div>{viewingOrder.shippingAddress}</div>;
+                    } catch (error) {
+                      console.error('Error parsing shipping address:', error);
+                      return <div>Invalid address format</div>;
                     }
                   })()}
                 </div>
