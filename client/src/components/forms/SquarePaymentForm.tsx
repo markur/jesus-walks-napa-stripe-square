@@ -48,17 +48,25 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     // Load Square configuration
     const loadSquareConfig = async () => {
       try {
-        const response = await apiRequest("GET", "/api/square-config");
+        const response = await fetch("/api/square-config");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const config = await response.json();
+        console.log("Square config loaded:", config);
         setSquareConfig(config);
       } catch (error) {
         console.error("Failed to load Square config:", error);
-        onPaymentError("Failed to initialize Square payments");
+        toast({
+          title: "Square Payment Error",
+          description: "Failed to load Square payment configuration",
+          variant: "destructive"
+        });
       }
     };
 
     loadSquareConfig();
-  }, [onPaymentError]);
+  }, [onPaymentError, toast]);
 
   useEffect(() => {
     if (!squareConfig) return;

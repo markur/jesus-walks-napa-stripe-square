@@ -29,10 +29,11 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.id === action.payload.id);
+      const price = typeof action.payload.price === 'string' 
+        ? parseFloat(action.payload.price) 
+        : Number(action.payload.price);
+      
       if (existingItem) {
-        const price = typeof action.payload.price === 'string' 
-          ? parseFloat(action.payload.price) 
-          : Number(action.payload.price);
         return {
           ...state,
           items: state.items.map(item =>
@@ -43,9 +44,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
           total: state.total + price
         };
       }
-      const price = typeof action.payload.price === 'string' 
-        ? parseFloat(action.payload.price) 
-        : Number(action.payload.price);
+      
       return {
         ...state,
         items: [...state.items, { ...action.payload, quantity: 1 }],
