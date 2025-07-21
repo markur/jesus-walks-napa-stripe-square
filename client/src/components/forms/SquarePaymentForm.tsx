@@ -87,37 +87,72 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
   };
 
   const initializeSquare = async () => {
-    // Check if Square is already loaded
-    if (window.Square) {
-      createSquareCard();
-      return;
+    try {
+      // Check if Square is already loaded
+      if (window.Square) {
+        await createSquareCard();
+        return;
+      }
+
+      // Remove any existing Square scripts
+      const existingScripts = document.querySelectorAll('script[src*="square"]');
+      existingScripts.forEach(script => script.remove());
+
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Load Square SDK with a promise wrapper for better error handling
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
+        script.async = true;
+        
+        script.onload = () => {
+          console.log('Square SDK loaded successfully');
+          resolve(true);
+        };
+        
+        script.onerror = (error) => {
+          console.error('Square SDK failed to load:', error);
+          reject(new Error('Failed to load Square SDK'));
+        };
+        
+        document.head.appendChild(script);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => reject(new Error('Square SDK load timeout')), 10000);
+      });
+
+      if (mountedRef.current) {
+        await createSquareCard();
+      }
+    } catch (error) {
+      console.error('Square initialization error:', error);
+      if (mountedRef.current) {
+        onPaymentError(`Failed to initialize Square: ${error.message}`);
+      }
     }
-
-    // Remove any existing Square scripts
-    const existingScripts = document.querySelectorAll('script[src*="square"]');
-    existingScripts.forEach(script => script.remove());
-
-    // Load Square SDK
-    const script = document.createElement('script');
-    script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
-    script.onload = () => {
-      if (mountedRef.current) {
-        createSquareCard();
-      }
-    };
-    script.onerror = () => {
-      if (mountedRef.current) {
-        onPaymentError('Failed to load Square SDK');
-      }
-    };
-    document.head.appendChild(script);
   };
 
   const createSquareCard = async () => {
-    if (!window.Square || !squareConfig || !mountedRef.current) return;
+    if (!window.Square || !squareConfig || !mountedRef.current) {
+      console.warn('Cannot create Square card - missing dependencies');
+      return;
+    }
 
     try {
+      console.log('Creating Square card with config:', squareConfig);
+      
       cleanup(); // Clean up any existing instances
+
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify container exists
+      const container = document.getElementById('square-card-container');
+      if (!container) {
+        throw new Error('Square card container not found');
+      }
 
       // Create fresh payments instance
       paymentsRef.current = window.Square.payments(
@@ -125,11 +160,24 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         squareConfig.locationId
       );
 
+      console.log('Square payments instance created');
+
       // Create card with minimal configuration
-      const card = await paymentsRef.current.card();
+      const card = await paymentsRef.current.card({
+        style: {
+          input: {
+            fontSize: '16px',
+            padding: '12px'
+          }
+        }
+      });
+
+      console.log('Square card created, attaching to container');
 
       // Attach to container
       await card.attach('#square-card-container');
+      
+      console.log('Square card attached successfully');
       
       if (mountedRef.current) {
         cardRef.current = card;
@@ -137,9 +185,9 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       }
 
     } catch (error) {
-      console.error('Square initialization error:', error);
+      console.error('Square card creation error:', error);
       if (mountedRef.current) {
-        onPaymentError(`Payment form error: ${error.message}`);
+        onPaymentError(`Payment form initialization failed: ${error.message}`);
       }
     }
   };
@@ -227,10 +275,20 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         {/* Square Card Container - Fixed ID */}
         <div 
           id="square-card-container" 
-          className="p-4 border rounded-lg min-h-[60px] bg-white"
+          className="p-4 border rounded-lg min-h-[120px] bg-white"
+          style={{ minHeight: '120px' }}
         >
-          {!isInitialized && (
-            <div className="text-gray-500 text-center">Loading payment form...</div>
+          {!isInitialized && squareConfig && (
+            <div className="flex items-center justify-center h-20">
+              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+              <span className="text-gray-500">Initializing Square payment form...</span>
+            </div>
+          )}
+          {!squareConfig && (
+            <div className="flex items-center justify-center h-20">
+              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+              <span className="text-gray-500">Loading Square configuration...</span>
+            </div>
           )}
         </div>
 
