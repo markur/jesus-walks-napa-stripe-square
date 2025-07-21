@@ -194,24 +194,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(orderData: any): Promise<any> {
-    const { items, ...orderInfo } = orderData;
+    try {
+      const { items, ...orderInfo } = orderData;
 
-    // Create the order
-    const [order] = await db.insert(orders).values(orderInfo).returning();
+      console.log('Creating order with info:', orderInfo);
+      
+      // Create the order
+      const [order] = await db.insert(orders).values(orderInfo).returning();
 
-    // Create order items
-    if (items && items.length > 0) {
-      const orderItemsData = items.map((item: any) => ({
-        orderId: order.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price
-      }));
+      // Create order items
+      if (items && items.length > 0) {
+        const orderItemsData = items.map((item: any) => ({
+          orderId: order.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price
+        }));
 
-      await db.insert(orderItems).values(orderItemsData);
+        console.log('Creating order items:', orderItemsData);
+        await db.insert(orderItems).values(orderItemsData);
+      }
+
+      console.log('Order created successfully:', order.id);
+      return order;
+    } catch (error: any) {
+      console.error('Database error in createOrder:', error);
+      if (error.code === '42P01') {
+        throw new Error('Orders table does not exist. Please run database migration.');
+      }
+      throw error;
     }
-
-    return order;
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {

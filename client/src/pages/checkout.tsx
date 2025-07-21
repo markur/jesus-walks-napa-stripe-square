@@ -703,17 +703,33 @@ function CheckoutForm() {
 
 export default function Checkout() {
   const [clientSecret, setClientSecret] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const { state: { total, items } } = useCart();
 
   // Create payment intent when component mounts
   useEffect(() => {
-    if (items.length > 0) {
+    if (items.length > 0 && total > 0) {
+      console.log('Creating payment intent for items:', items.length, 'total:', total);
+      setIsLoading(true);
+      
       apiRequest("POST", "/api/create-payment-intent", { amount: total })
-        .then((res) => res.json())
-        .then((data) => setClientSecret(data.clientSecret))
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log('Payment intent created:', data);
+          setClientSecret(data.clientSecret);
+          setIsLoading(false);
+        })
         .catch((error) => {
           console.error("Failed to create payment intent:", error);
+          setIsLoading(false);
         });
+    } else {
+      setIsLoading(false);
     }
   }, [total, items]);
 
@@ -736,14 +752,17 @@ export default function Checkout() {
     );
   }
 
-  if (!clientSecret) {
+  if (isLoading || !clientSecret) {
     return (
       <MainLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card>
-              <CardContent className="flex justify-center p-4">
-                <Loader2 className="h-8 w-8 animate-spin" />
+              <CardContent className="flex flex-col items-center justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                <p className="text-muted-foreground">
+                  {isLoading ? 'Preparing checkout...' : 'Loading payment system...'}
+                </p>
               </CardContent>
             </Card>
           </div>
