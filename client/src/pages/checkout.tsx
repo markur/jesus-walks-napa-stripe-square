@@ -713,58 +713,71 @@ export default function Checkout() {
 
   // Create payment intent when component mounts
   useEffect(() => {
-    let isMounted = true;
+    async function initializeCheckout() {
+      if (items.length === 0) return;
 
-    if (items.length > 0 && total > 0) {
-      console.log('Creating payment intent for items:', items.length, 'total:', total);
       setIsLoading(true);
       setInitError(null);
-      
-      // Add a small delay to prevent rapid requests
-      const initTimer = setTimeout(() => {
-        if (!isMounted) return;
 
-        apiRequest("POST", "/api/create-payment-intent", { amount: total })
-          .then(async (res) => {
-            if (!isMounted) return;
+      try {
+        console.log('Initializing checkout with items:', items);
 
-            if (!res.ok) {
-              const errorText = await res.text();
-              throw new Error(`HTTP ${res.status}: ${errorText}`);
-            }
-            return res.json();
-          })
-          .then((data) => {
-            if (!isMounted) return;
+        const requestBody = {
+          items: items.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price: Number(item.price)
+          })),
+          shippingAddress: {
+            fullName: "Test User",
+            street: "123 Test St",
+            city: "Test City", 
+            state: "CA",
+            zipCode: "12345",
+            country: "US"
+          }
+        };
 
-            console.log('Payment intent created:', data);
-            if (data.clientSecret) {
-              setClientSecret(data.clientSecret);
-            } else {
-              throw new Error('No client secret received');
-            }
-            setIsLoading(false);
-          })
-          .catch((error) => {
-            if (!isMounted) return;
+        console.log('Checkout request body:', requestBody);
 
-            console.error("Failed to create payment intent:", error);
-            setInitError(error.message || 'Failed to initialize payment');
-            setIsLoading(false);
-          });
-      }, 100);
+        const response = await fetch('/api/checkout/create-payment-intent', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-      return () => {
-        clearTimeout(initTimer);
-      };
-    } else {
-      setIsLoading(false);
+        console.log('Checkout response status:', response.status);
+        console.log('Checkout response headers:', Object.fromEntries(response.headers.entries()));
+
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+
+        if (!response.ok) {
+          throw new Error(`Payment initialization failed: ${response.status} - ${responseText}`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error('Invalid JSON response from server');
+        }
+
+        console.log('Parsed checkout data:', data);
+        setClientSecret(data.clientSecret);
+      } catch (error) {
+        console.error('Checkout initialization error:', error);
+        setInitError(error instanceof Error ? error.message : 'Unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    return () => {
-      isMounted = false;
-    };
-  }, [total, items]);
+    initializeCheckout();
+  }, [items]);
 
   if (items.length === 0) {
     return (

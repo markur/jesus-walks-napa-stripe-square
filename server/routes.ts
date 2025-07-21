@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         console.log("Admin user created successfully");
-        
+
         return res.json({
           success: true,
           message: "Admin user created successfully",
@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log(`Login attempt for username: ${username}`);
-      
+
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
       }
@@ -189,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set session
       req.session.userId = user.id;
-      
+
       // Save session before responding
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Login successful for ${username} (User ID: ${user.id}, Admin: ${user.isAdmin})`);
       console.log(`Session ID: ${req.session.id}`);
-      
+
       res.json({ 
         user: {
           id: user.id,
@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/check-availability", async (req, res) => {
     try {
       const { username, email } = req.body;
-      
+
       const result = {
         usernameAvailable: true,
         emailAvailable: true,
@@ -426,7 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/products/:id", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      
+
       await storage.deleteProduct(productId);
       res.json({ message: "Product deleted successfully" });
     } catch (error) {
@@ -530,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/orders/:id", requireAdmin, async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
-      
+
       await storage.deleteOrder(orderId);
       res.json({ message: "Order deleted successfully" });
     } catch (error) {
@@ -572,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.createUser(userData);
-      
+
       // Send welcome email
       try {
         const { emailService } = await import('./services/email.js');
@@ -581,7 +581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Failed to send welcome email:", emailError);
         // Don't fail the user creation if email fails
       }
-      
+
       res.status(201).json(user);
     } catch (error) {
       console.error("User creation error:", error);
@@ -774,7 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Products endpoint accessed');
       const products = await storage.getAllProducts();
       console.log(`Found ${products.length} products`);
-      
+
       // Ensure we always return an array
       const productsArray = Array.isArray(products) ? products : [];
       res.json(productsArray);
@@ -827,7 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const product = await storage.createProduct(testProduct);
       console.log("Development product created:", product);
-      
+
       res.status(201).json({ 
         message: "Development product created successfully", 
         product 
@@ -861,7 +861,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: "Jesus Walks Napa Valley Wine",
           description: "Premium wine from the beautiful vineyards of Napa Valley",
           price: "49.99",
-          imageUrl: "/assets/napa-valley-vineyard.webp",
+          imageUrl:```text
+"/assets/napa-valley-vineyard.webp",
           category: "Wine",
           stock: 100
         },
@@ -897,10 +898,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/test-email", requireAdmin, async (req, res) => {
     try {
       const { emailService } = await import('./services/email.js');
-      
+
       // Check if email service is enabled
       const isEnabled = emailService.isEnabled();
-      
+
       if (!isEnabled) {
         return res.json({
           success: false,
@@ -912,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test sending a welcome email to admin
       const testEmail = "admin@jesuswalks.com";
       const emailSent = await emailService.sendWelcomeEmail(testEmail, "Test User");
-      
+
       res.json({
         success: emailSent,
         message: emailSent ? "Test email sent successfully!" : "Failed to send test email",
@@ -1224,18 +1225,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Checkout routes
+  app.post("/api/checkout/create-payment-intent", requireAuth, async (req, res) => {
+    console.log('Create payment intent request received');
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);
+
+    try {
+      const { amount } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error) {
+      console.error("Payment intent creation error:", error);
+      res.status(500).json({ 
+        error: "Failed to create payment intent",
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
+
   // Catch-all route for client-side routing - must be last
   app.get('*', (req, res, next) => {
     // Skip API routes
     if (req.path.startsWith('/api/')) {
       return next();
     }
-    
+
     // Skip static file requests (including uploads)
     if (req.path.includes('.') || req.path.startsWith('/uploads/')) {
       return next();
     }
-    
+
     // For all other routes, serve the main index.html for client-side routing
     if (app.get("env") === "development") {
       // In development, let Vite handle this
