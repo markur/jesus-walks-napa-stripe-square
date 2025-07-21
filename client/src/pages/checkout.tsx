@@ -381,8 +381,7 @@ function CheckoutForm() {
             {/* Simplified shipping address for payment testing - no validation required */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800 mb-3">
-                <strong>Note:</strong> Address validation temporarily disabled for payment testing. 
-                Using simplified shipping for Stripe and Square payment integration testing.
+                <strong>Quick Setup:</strong> Click below to use test address and proceed to payment testing.
               </p>
               <Button 
                 variant="outline" 
@@ -409,10 +408,15 @@ function CheckoutForm() {
                     estimatedDays: 3
                   };
                   handleRateSelected(testRate);
+
+                  // Auto-advance to payment step
+                  setTimeout(() => {
+                    setStep('payment');
+                  }, 100);
                 }}
                 className="w-full"
               >
-                Use Test Address & Shipping - Continue to Payment Testing
+                ✓ Use Test Address & Go to Payment
               </Button>
             </div>
           </div>
@@ -704,33 +708,62 @@ function CheckoutForm() {
 export default function Checkout() {
   const [clientSecret, setClientSecret] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const { state: { total, items } } = useCart();
 
   // Create payment intent when component mounts
   useEffect(() => {
+    let isMounted = true;
+
     if (items.length > 0 && total > 0) {
       console.log('Creating payment intent for items:', items.length, 'total:', total);
       setIsLoading(true);
+      setInitError(null);
       
-      apiRequest("POST", "/api/create-payment-intent", { amount: total })
-        .then(async (res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log('Payment intent created:', data);
-          setClientSecret(data.clientSecret);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Failed to create payment intent:", error);
-          setIsLoading(false);
-        });
+      // Add a small delay to prevent rapid requests
+      const initTimer = setTimeout(() => {
+        if (!isMounted) return;
+
+        apiRequest("POST", "/api/create-payment-intent", { amount: total })
+          .then(async (res) => {
+            if (!isMounted) return;
+
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error(`HTTP ${res.status}: ${errorText}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (!isMounted) return;
+
+            console.log('Payment intent created:', data);
+            if (data.clientSecret) {
+              setClientSecret(data.clientSecret);
+            } else {
+              throw new Error('No client secret received');
+            }
+            setIsLoading(false);
+          })
+          .catch((error) => {
+            if (!isMounted) return;
+
+            console.error("Failed to create payment intent:", error);
+            setInitError(error.message || 'Failed to initialize payment');
+            setIsLoading(false);
+          });
+      }, 100);
+
+      return () => {
+        clearTimeout(initTimer);
+      };
     } else {
       setIsLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [total, items]);
 
   if (items.length === 0) {
@@ -752,7 +785,7 @@ export default function Checkout() {
     );
   }
 
-  if (isLoading || !clientSecret) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="container mx-auto px-4 py-8">
@@ -760,9 +793,47 @@ export default function Checkout() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                <p className="text-muted-foreground">
-                  {isLoading ? 'Preparing checkout...' : 'Loading payment system...'}
-                </p>
+                <p className="text-muted-foreground">Preparing checkout...</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (initError) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                <p className="text-red-500 mb-4">Failed to initialize checkout</p>
+                <p className="text-sm text-muted-foreground mb-4">{initError}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!clientSecret) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">Payment system not ready</p>
+                <Button onClick={() => window.location.reload()}>
+                  Reload Page
+                </Button>
               </CardContent>
             </Card>
           </div>

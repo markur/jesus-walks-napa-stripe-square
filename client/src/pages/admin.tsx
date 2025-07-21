@@ -249,6 +249,12 @@ export default function AdminDashboard() {
     }
   });
 
+  // Order viewing/editing state
+  const [viewingOrder, setViewingOrder] = useState<any>(null);
+  const [editOrderForm, setEditOrderForm] = useState({
+    status: 'pending'
+  });
+
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -279,6 +285,48 @@ export default function AdminDashboard() {
       toast({ 
         title: "Error", 
         description: error.message || "Failed to create order",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update order mutation
+  const updateOrderMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
+      return apiRequest(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Order updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setViewingOrder(null);
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update order",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Delete order mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      return apiRequest(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Order deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete order",
         variant: "destructive" 
       });
     },
@@ -348,6 +396,25 @@ export default function AdminDashboard() {
       shippingAddress: orderForm.shippingAddress,
       status: 'pending'
     });
+  };
+
+  const handleViewOrder = (order: any) => {
+    setViewingOrder(order);
+    setEditOrderForm({ status: order.status });
+  };
+
+  const handleUpdateOrder = () => {
+    if (!viewingOrder) return;
+    updateOrderMutation.mutate({
+      orderId: viewingOrder.id,
+      status: editOrderForm.status
+    });
+  };
+
+  const handleDeleteOrder = (orderId: number) => {
+    if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      deleteOrderMutation.mutate(orderId);
+    }
   };
 
   // State and function to handle editing users
@@ -729,12 +796,93 @@ export default function AdminDashboard() {
               <td style={styles.td}>${Number(order.total).toFixed(2)}</td>
               <td style={styles.td}>{new Date(order.createdAt).toLocaleDateString()}</td>
               <td style={styles.td}>
-                <button style={styles.actionButton}>View</button>
+                <button 
+                  style={styles.actionButton}
+                  onClick={() => handleViewOrder(order)}
+                >
+                  View
+                </button>
+                <button 
+                  style={{ ...styles.actionButton, backgroundColor: '#dc2626', marginLeft: '0.5rem' }}
+                  onClick={() => handleDeleteOrder(order.id)}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Order Detail Modal */}
+      {viewingOrder && (
+        <div style={styles.formOverlay}>
+          <div style={{ ...styles.formContainer, minWidth: '700px' }}>
+            <h3>Order Details - #{viewingOrder.id}</h3>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Customer:</strong> {users?.find(u => u.id === viewingOrder.userId)?.username || `User ${viewingOrder.userId}`}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Status:</strong>
+              <select
+                value={editOrderForm.status}
+                onChange={(e) => setEditOrderForm(prev => ({ ...prev, status: e.target.value }))}
+                style={styles.formInput}
+              >
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Total:</strong> ${Number(viewingOrder.total).toFixed(2)}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Shipping Address:</strong>
+              {viewingOrder.shippingAddress && (
+                <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.25rem' }}>
+                  {(() => {
+                    try {
+                      const addr = JSON.parse(viewingOrder.shippingAddress);
+                      return (
+                        <div>
+                          <div>{addr.fullName}</div>
+                          <div>{addr.street}</div>
+                          <div>{addr.city}, {addr.state} {addr.zipCode}</div>
+                          <div>{addr.country}</div>
+                        </div>
+                      );
+                    } catch {
+                      return <div>{viewingOrder.shippingAddress}</div>;
+                    }
+                  })()}
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Created:</strong> {new Date(viewingOrder.createdAt).toLocaleString()}
+            </div>
+            
+            <div style={styles.formButtons}>
+              <button 
+                style={styles.actionButton}
+                onClick={handleUpdateOrder}
+                disabled={updateOrderMutation.isPending}
+              >
+                {updateOrderMutation.isPending ? 'Updating...' : 'Update Order'}
+              </button>
+              <button 
+                style={{ ...styles.actionButton, backgroundColor: '#6b7280' }}
+                onClick={() => setViewingOrder(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
