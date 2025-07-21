@@ -206,7 +206,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         },
         // Force Square to create a completely new instance
         includeInputLabels: true,
-        postalCode: false,
+        // Remove postal code field entirely - this was causing the error
         // Force fresh instance with no cached data
         autocomplete: 'off'
       });
