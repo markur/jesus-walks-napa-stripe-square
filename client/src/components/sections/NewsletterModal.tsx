@@ -17,19 +17,20 @@ export function NewsletterModal({ children }: NewsletterModalProps) {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (email: string) => {
-      // Submit directly to Brevo form endpoint
-      const formData = new FormData();
-      formData.append('EMAIL', email);
-      formData.append('email_address_check', '');
-      formData.append('locale', 'en');
-
-      const response = await fetch('https://90f09ba3.sibforms.com/serve/MUIFAC_t8qxyKNa9XGBZAO-a_7vbeXXKXhr1XpIUiuRF5sGhiTau1gRbBbWHn9jwVFpX4NqPF_BnjDX-T7PSxXl-GMcKPcdSmU30RWpzmIMOtmWbJixvSOqXIK5PiwYXRJx5PtnYHGQ2ZIHJCVGYwptCR75gOalVlgBII2BoKVtfgMJoWPOUfLGUijDqYae4eWCO3fkZwOreNfAC', {
+      const response = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
-        body: formData,
-        mode: 'no-cors'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
-      
-      return true;
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Subscription failed');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -39,10 +40,10 @@ export function NewsletterModal({ children }: NewsletterModalProps) {
       setEmail("");
       setOpen(false);
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Subscription Error",
-        description: "Your subscription could not be saved. Please try again.",
+        description: error.message || "Your subscription could not be saved. Please try again.",
         variant: "destructive",
       });
     },
