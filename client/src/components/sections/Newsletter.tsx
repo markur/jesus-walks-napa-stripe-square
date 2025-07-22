@@ -43,38 +43,7 @@ export function Newsletter() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast({
-          title: "Successfully subscribed!",
-          description: "Thank you for joining our newsletter."
-        });
-        setEmail('');
-      } else {
-        throw new Error(data.message || 'Subscription failed');
-      }
-    } catch (error: any) {
-      console.error('Newsletter subscription error:', error);
-      toast({
-        title: "Subscription failed",
-        description: error.message || "Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    mutate(email);
   };
 
   return (

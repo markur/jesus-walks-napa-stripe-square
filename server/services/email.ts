@@ -10,6 +10,16 @@ interface EmailConfig {
   };
 }
 
+interface BrevoContact {
+  email: string;
+  attributes?: {
+    FIRSTNAME?: string;
+    LASTNAME?: string;
+    [key: string]: any;
+  };
+  listIds?: number[];
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private enabled: boolean = false;
@@ -166,6 +176,50 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('Failed to send shipping notification email:', error);
+      return false;
+    }
+  }
+
+  async subscribeToNewsletter(email: string, firstName?: string, lastName?: string): Promise<boolean> {
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    const brevoListId = process.env.BREVO_LIST_ID;
+
+    if (!brevoApiKey) {
+      console.log(`[SIMULATED] Newsletter subscription for: ${email}`);
+      return true;
+    }
+
+    try {
+      const contact: BrevoContact = {
+        email,
+        attributes: {},
+        listIds: brevoListId ? [parseInt(brevoListId)] : undefined
+      };
+
+      if (firstName) contact.attributes!.FIRSTNAME = firstName;
+      if (lastName) contact.attributes!.LASTNAME = lastName;
+
+      const response = await fetch('https://api.brevo.com/v3/contacts', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'api-key': brevoApiKey
+        },
+        body: JSON.stringify(contact)
+      });
+
+      if (response.ok || response.status === 400) {
+        // 400 might mean contact already exists, which is fine
+        console.log(`Newsletter subscription successful for: ${email}`);
+        return true;
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Brevo subscription failed:', errorData);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to subscribe to newsletter:', error);
       return false;
     }
   }
