@@ -181,45 +181,37 @@ class EmailService {
   }
 
   async subscribeToNewsletter(email: string, firstName?: string, lastName?: string): Promise<boolean> {
-    const brevoApiKey = process.env.BREVO_API_KEY;
-    const brevoListId = process.env.BREVO_LIST_ID || '3'; // Default to list ID 3
-
-    if (!brevoApiKey) {
-      console.log(`[SIMULATED] Newsletter subscription for: ${email}`);
+    const brevoFormId = process.env.BREVO_FORM_ID;
+    
+    if (!brevoFormId) {
+      console.log(`[SIMULATED] Newsletter subscription for: ${email} (No Brevo form ID configured)`);
       return true;
     }
 
     try {
-      const contact: BrevoContact = {
-        email,
-        attributes: {},
-        listIds: [parseInt(brevoListId)]
-      };
+      // Use Brevo's form submission endpoint to trigger double opt-in
+      const formData = new URLSearchParams();
+      formData.append('email', email);
+      if (firstName) formData.append('FIRSTNAME', firstName);
+      if (lastName) formData.append('LASTNAME', lastName);
 
-      if (firstName) contact.attributes!.FIRSTNAME = firstName;
-      if (lastName) contact.attributes!.LASTNAME = lastName;
-
-      const response = await fetch('https://api.brevo.com/v3/contacts', {
+      const response = await fetch(`https://my.brevo.com/form/${brevoFormId}`, {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'api-key': brevoApiKey
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(contact)
+        body: formData.toString()
       });
 
-      if (response.ok || response.status === 400) {
-        // 400 might mean contact already exists, which is fine
-        console.log(`Newsletter subscription successful for: ${email}`);
+      if (response.ok) {
+        console.log(`Newsletter subscription with double opt-in initiated for: ${email}`);
         return true;
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Brevo subscription failed:', errorData);
+        console.error('Brevo form submission failed:', response.status, response.statusText);
         return false;
       }
     } catch (error) {
-      console.error('Failed to subscribe to newsletter:', error);
+      console.error('Failed to submit to Brevo form:', error);
       return false;
     }
   }
