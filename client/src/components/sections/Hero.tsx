@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { NewsletterModal } from "./NewsletterModal";
 
 export function Hero() {
   return (
@@ -25,16 +26,11 @@ export function Hero() {
             meaningful connections with Jesus Walks.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 sm:gap-x-6">
-            <Button 
-              size="lg" 
-              className="text-lg w-full sm:w-auto"
-              onClick={() => {
-                const newsletterSection = document.querySelector('form[onsubmit]')?.closest('div');
-                newsletterSection?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              Join Our Community
-            </Button>
+            <NewsletterModal>
+              <Button size="lg" className="text-lg w-full sm:w-auto">
+                Join Our Community
+              </Button>
+            </NewsletterModal>
             <Link href="/events">
               <Button variant="outline" size="lg" className="text-lg w-full sm:w-auto text-white border-white bg-white/20 hover:bg-white/35">
                 View Events

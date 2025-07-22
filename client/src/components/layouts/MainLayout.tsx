@@ -5,6 +5,7 @@ import { Menu, Facebook, Instagram, Twitter, ShoppingCart } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
+import { NewsletterModal } from "@/components/sections/NewsletterModal";
 import type { User } from "@shared/schema";
 
 // Social media configuration
@@ -60,14 +61,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           <Link href="/login">
             <Button variant="ghost">Login</Button>
           </Link>
-          <Button
-            onClick={() => {
-              const newsletterSection = document.querySelector('form[onsubmit]')?.closest('div');
-              newsletterSection?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            Join Now
-          </Button>
+          <NewsletterModal>
+            <Button>Join Now</Button>
+          </NewsletterModal>
         </>
       )}
     </>
