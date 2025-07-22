@@ -182,7 +182,7 @@ class EmailService {
 
   async subscribeToNewsletter(email: string, firstName?: string, lastName?: string): Promise<boolean> {
     const brevoApiKey = process.env.BREVO_API_KEY;
-    const brevoListId = process.env.BREVO_LIST_ID;
+    const brevoListId = process.env.BREVO_LIST_ID || '3'; // Default to list ID 3
 
     if (!brevoApiKey) {
       console.log(`[SIMULATED] Newsletter subscription for: ${email}`);
@@ -193,7 +193,7 @@ class EmailService {
       const contact: BrevoContact = {
         email,
         attributes: {},
-        listIds: brevoListId ? [parseInt(brevoListId)] : undefined
+        listIds: [parseInt(brevoListId)]
       };
 
       if (firstName) contact.attributes!.FIRSTNAME = firstName;

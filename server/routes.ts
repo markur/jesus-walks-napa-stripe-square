@@ -1429,20 +1429,21 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
       });
     }
 
-    // TODO: In a real implementation, you would:
-    // 1. Store the email in your database
-    // 2. Send a confirmation email
-    // 3. Integrate with your email marketing service (e.g., Mailchimp, ConvertKit)
+    // Use Brevo email service for newsletter subscription
+    const { emailService } = await import('./services/email.js');
+    const subscriptionResult = await emailService.subscribeToNewsletter(email.trim());
 
-    console.log('Newsletter subscription for:', email.trim());
-
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    res.json({ 
-      success: true, 
-      message: 'Successfully subscribed to newsletter' 
-    });
+    if (subscriptionResult) {
+      res.json({ 
+        success: true, 
+        message: 'Successfully subscribed to newsletter' 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to subscribe to newsletter. Please try again.' 
+      });
+    }
 
   } catch (error) {
     console.error('Newsletter subscription error:', error);
