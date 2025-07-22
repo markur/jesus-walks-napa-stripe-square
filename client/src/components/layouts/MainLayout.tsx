@@ -60,9 +60,14 @@ export function MainLayout({ children }: MainLayoutProps) {
           <Link href="/login">
             <Button variant="ghost">Login</Button>
           </Link>
-          <Link href="/register">
-            <Button>Join Now</Button>
-          </Link>
+          <Button
+            onClick={() => {
+              const newsletterSection = document.querySelector('form[onsubmit]')?.closest('div');
+              newsletterSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            Join Now
+          </Button>
         </>
       )}
     </>
