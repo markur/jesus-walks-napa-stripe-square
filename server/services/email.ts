@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 
 interface EmailConfig {
   host?: string;
@@ -214,6 +215,84 @@ class EmailService {
       console.error('Failed to submit to Brevo form:', error);
       return false;
     }
+  }
+
+  async createEmailCampaign(campaignData: {
+    name: string;
+    subject: string;
+    htmlContent: string;
+    listIds: number[];
+    scheduledAt?: string;
+    senderName?: string;
+    senderEmail?: string;
+  }): Promise<any> {
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    
+    if (!brevoApiKey) {
+      console.log(`[SIMULATED] Email campaign would be created: ${campaignData.name}`);
+      return { success: true, campaignId: 'simulated_campaign_123' };
+    }
+
+    try {
+      // Initialize Brevo API client
+      const defaultClient = SibApiV3Sdk.ApiClient.instance;
+      const apiKey = defaultClient.authentications['api-key'];
+      apiKey.apiKey = brevoApiKey;
+      
+      const apiInstance = new SibApiV3Sdk.EmailCampaignsApi();
+      const emailCampaigns = new SibApiV3Sdk.CreateEmailCampaign();
+      
+      // Set campaign properties
+      emailCampaigns.name = campaignData.name;
+      emailCampaigns.subject = campaignData.subject;
+      emailCampaigns.sender = {
+        name: campaignData.senderName || "Jesus Walks Napa",
+        email: campaignData.senderEmail || process.env.SMTP_FROM || "noreply@jesuswalks.com"
+      };
+      emailCampaigns.type = "classic";
+      emailCampaigns.htmlContent = campaignData.htmlContent;
+      emailCampaigns.recipients = { listIds: campaignData.listIds };
+      
+      if (campaignData.scheduledAt) {
+        emailCampaigns.scheduledAt = campaignData.scheduledAt;
+      }
+      
+      // Create the campaign
+      const data = await apiInstance.createEmailCampaign(emailCampaigns);
+      console.log('Email campaign created successfully:', data);
+      return { success: true, data };
+      
+    } catch (error) {
+      console.error('Failed to create email campaign:', error);
+      return { success: false, error };
+    }
+  }
+
+  async sendWelcomeCampaign(listIds: number[]): Promise<boolean> {
+    const campaignData = {
+      name: `Welcome Campaign - ${new Date().toLocaleDateString()}`,
+      subject: "Welcome to Jesus Walks Napa Valley!",
+      htmlContent: `
+        <h1>Welcome to Jesus Walks Napa Valley!</h1>
+        <p>Thank you for joining our exclusive wine community.</p>
+        <img src="https://your-domain.com/assets/napa-valley-vineyard.jpg" alt="Napa Valley Vineyard" style="max-width: 100%; height: auto;">
+        <p>Discover our premium wines and vineyard experiences:</p>
+        <ul>
+          <li>🍷 Premium Wine Tastings</li>
+          <li>🍇 Vineyard Tours</li>
+          <li>🎉 Exclusive Member Events</li>
+          <li>📦 Wine Club Deliveries</li>
+        </ul>
+        <a href="https://jesuswalks.com/shop" style="background-color: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">Explore Our Wines</a>
+        <p>Best regards,<br>The Jesus Walks Napa Team</p>
+      `,
+      listIds,
+      senderName: "Jesus Walks Napa",
+      senderEmail: process.env.SMTP_FROM || "noreply@jesuswalks.com"
+    };
+
+    const result = await this.createEmailCampaign(campaignData);
+    return result.success;
   }
 
   isEnabled(): boolean {

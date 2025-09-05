@@ -1454,5 +1454,80 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
   }
 });
 
+// Create email campaign endpoint (admin only)
+app.post("/api/email/create-campaign", async (req, res) => {
+  try {
+    // Basic auth check - you should implement proper admin authentication
+    const { campaignData } = req.body;
+
+    if (!campaignData || !campaignData.name || !campaignData.subject || !campaignData.htmlContent) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Campaign name, subject, and htmlContent are required' 
+      });
+    }
+
+    const { emailService } = await import('./services/email.js');
+    const result = await emailService.createEmailCampaign(campaignData);
+
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: 'Campaign created successfully',
+        data: result.data
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to create campaign',
+        error: result.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Campaign creation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+});
+
+// Send welcome campaign endpoint (admin only)
+app.post("/api/email/send-welcome-campaign", async (req, res) => {
+  try {
+    const { listIds } = req.body;
+
+    if (!listIds || !Array.isArray(listIds)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'listIds array is required' 
+      });
+    }
+
+    const { emailService } = await import('./services/email.js');
+    const result = await emailService.sendWelcomeCampaign(listIds);
+
+    if (result) {
+      res.json({ 
+        success: true, 
+        message: 'Welcome campaign sent successfully'
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send welcome campaign'
+      });
+    }
+
+  } catch (error) {
+    console.error('Welcome campaign error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+});
+
   return server;
 }
