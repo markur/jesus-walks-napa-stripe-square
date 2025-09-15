@@ -1,12 +1,14 @@
 import OpenAI from "openai";
 import type { ModelConfig } from "@shared/schema";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("Missing required env var: OPENAI_API_KEY");
-}
+let openai: OpenAI | null = null;
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+if (process.env.OPENAI_API_KEY) {
+  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} else {
+  console.warn("Warning: Missing OPENAI_API_KEY. OpenAI features will be disabled. Using alternative AI providers (Anthropic/Gemini) instead.");
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -17,6 +19,10 @@ export async function generateChatResponse(
   messages: ChatMessage[],
   modelConfig: ModelConfig
 ): Promise<string> {
+  if (!openai) {
+    throw new Error('OpenAI is not configured. Please set OPENAI_API_KEY environment variable or use an alternative AI provider (Anthropic/Gemini).');
+  }
+
   try {
     const completion = await openai.chat.completions.create({
       model: modelConfig.modelId,
