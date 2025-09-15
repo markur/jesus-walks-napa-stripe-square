@@ -1529,5 +1529,147 @@ app.post("/api/email/send-welcome-campaign", async (req, res) => {
   }
 });
 
+// AI Chat API endpoints
+
+// Get available model configurations
+app.get("/api/ai/models", async (req, res) => {
+  try {
+    const models = await storage.getAllModelConfigs();
+    res.json(models);
+  } catch (error) {
+    console.error('Error fetching model configs:', error);
+    res.status(500).json({ message: "Failed to fetch model configurations" });
+  }
+});
+
+// Create a new conversation
+app.post("/api/ai/conversations", async (req, res) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { title, modelConfigId } = req.body;
+    const conversation = await storage.createConversation({
+      userId: req.session.userId,
+      title: title || "New Conversation",
+      modelConfigId: modelConfigId || 1 // Default to first model
+    });
+    res.json(conversation);
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    res.status(500).json({ message: "Failed to create conversation" });
+  }
+});
+
+// Get user's conversations
+app.get("/api/ai/conversations", async (req, res) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const conversations = await storage.getUserConversations(req.session.userId);
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ message: "Failed to fetch conversations" });
+  }
+});
+
+// Get messages for a conversation
+app.get("/api/ai/conversations/:id/messages", async (req, res) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const conversationId = parseInt(req.params.id);
+    const messages = await storage.getConversationMessages(conversationId);
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: "Failed to fetch messages" });
+  }
+});
+
+// Send a message and get AI response
+app.post("/api/ai/chat", async (req, res) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { conversationId, message, modelConfigId } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    // Get model configuration
+    const modelConfig = await storage.getModelConfig(modelConfigId);
+    if (!modelConfig || !modelConfig.active) {
+      return res.status(400).json({ message: "Invalid or inactive model configuration" });
+    }
+
+    // Save user message
+    const userMessage = await storage.createMessage({
+      conversationId,
+      role: 'user',
+      content: message,
+      tokens: null
+    });
+
+    // Get conversation history
+    const messages = await storage.getConversationMessages(conversationId);
+    const chatMessages = messages.map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content
+    }));
+
+    // Generate AI response based on provider
+    let aiResponse: string;
+    let tokenCount: number;
+
+    switch (modelConfig.provider) {
+      case 'openai':
+        aiResponse = await generateChatResponse(chatMessages, modelConfig);
+        tokenCount = await countTokens(aiResponse);
+        break;
+      case 'anthropic':
+        aiResponse = await generateClaudeResponse(chatMessages, modelConfig);
+        tokenCount = await countClaudeTokens(aiResponse);
+        break;
+      case 'gemini':
+        aiResponse = await generateGeminiResponse(chatMessages, modelConfig);
+        tokenCount = await countGeminiTokens(aiResponse);
+        break;
+      default:
+        throw new Error(`Unsupported AI provider: ${modelConfig.provider}`);
+    }
+
+    // Save AI response
+    const assistantMessage = await storage.createMessage({
+      conversationId,
+      role: 'assistant',
+      content: aiResponse,
+      tokens: tokenCount
+    });
+
+    res.json({
+      userMessage,
+      assistantMessage,
+      tokenCount
+    });
+
+  } catch (error) {
+    console.error('Error in AI chat:', error);
+    res.status(500).json({ 
+      message: "Failed to generate response", 
+      error: (error as Error).message 
+    });
+  }
+});
+
   return server;
 }
