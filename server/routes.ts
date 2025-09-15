@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({
         success: false,
         message: "Failed to reset password",
-        error: error.message
+        error: (error as Error).message
       });
     }
   });
@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login", error: error.message });
+      res.status(500).json({ message: "Failed to login", error: (error as Error).message });
     }
   });
 
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user || null);
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to get user", error: error.message });
+      res.status(500).json({ message: "Failed to get user", error: (error as Error).message });
     }
   });
 
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(allUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
-      res.status(500).json({ message: "Failed to fetch users", error: error.message });
+      res.status(500).json({ message: "Failed to fetch users", error: (error as Error).message });
     }
   });
 
@@ -788,7 +788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Products API error:', error);
       res.status(500).json({ 
         error: 'Failed to fetch products', 
-        message: error.message,
+        message: (error as Error).message,
         success: false 
       });
     }
@@ -858,7 +858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Debug products error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -898,7 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Force create products error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
@@ -933,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: "Email test failed",
-        error: error.message
+        error: (error as Error).message
       });
     }
   });
@@ -1021,7 +1021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Checkout payment intent error:", error);
       res.status(500).json({
         error: "Error creating payment intent",
-        details: error.message
+        details: (error as Error).message
       });
     }
   });
@@ -1096,7 +1096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Stripe error:", error);
       res.status(500).json({
         error: "Error creating payment intent",
-        details: error.message
+        details: (error as Error).message
       });
     }
   });
@@ -1204,7 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Apple Pay config error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get Apple Pay configuration'
+        error: (error as Error).message || 'Failed to get Apple Pay configuration'
       });
     }
   });
@@ -1218,7 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Google Pay config error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get Google Pay configuration'
+        error: (error as Error).message || 'Failed to get Google Pay configuration'
       });
     }
   });
@@ -1233,7 +1233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Apple Pay payment error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Apple Pay payment failed'
+        error: (error as Error).message || 'Apple Pay payment failed'
       });
     }
   });
@@ -1248,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Google Pay payment error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Google Pay payment failed'
+        error: (error as Error).message || 'Google Pay payment failed'
       });
     }
   });
@@ -1264,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Crypto exchange rates error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get exchange rates'
+        error: (error as Error).message || 'Failed to get exchange rates'
       });
     }
   });
@@ -1279,7 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Stripe crypto payment error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Stripe crypto payment failed'
+        error: (error as Error).message || 'Stripe crypto payment failed'
       });
     }
   });
@@ -1300,7 +1300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Coinbase crypto payment error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Coinbase crypto payment failed'
+        error: (error as Error).message || 'Coinbase crypto payment failed'
       });
     }
   });
@@ -1316,7 +1316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Crypto payment verification error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Payment verification failed'
+        error: (error as Error).message || 'Payment verification failed'
       });
     }
   });
@@ -1381,7 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Order creation error:", error);
       res.status(500).json({
         error: "Failed to create order",
-        details: error.message
+        details: (error as Error).message
       });
     }
   });
