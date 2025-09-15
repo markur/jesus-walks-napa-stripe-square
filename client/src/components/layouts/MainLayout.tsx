@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Facebook, Instagram, Twitter, ShoppingCart } from "lucide-react";
+import { Menu, Facebook, Instagram, Twitter, ShoppingCart, Bot } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
@@ -34,6 +34,12 @@ export function MainLayout({ children }: MainLayoutProps) {
       </Link>
       <Link href="/shop">
         <Button variant="ghost">Shop</Button>
+      </Link>
+      <Link href="/ai-assistant">
+        <Button variant="ghost" className="flex items-center gap-2">
+          <Bot className="h-4 w-4" />
+          AI Assistant
+        </Button>
       </Link>
       <Link href="/cart">
         <Button variant="ghost" className="relative">

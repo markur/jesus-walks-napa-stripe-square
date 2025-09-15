@@ -15,6 +15,7 @@ import Events from "@/pages/events";
 import PaymentTest from "@/pages/payment-test";
 import TestDeploy from "@/pages/test-deploy";
 import AdminDashboard from "@/pages/admin";
+import AIAgent from "@/pages/ai-agent";
 import NotFound from "@/pages/not-found";
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/payment-test" component={PaymentTest} />
         <Route path="/test-deploy" component={TestDeploy} />
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/ai-assistant" component={AIAgent} />
         <Route component={NotFound} />
       </Router>
       <Toaster />
