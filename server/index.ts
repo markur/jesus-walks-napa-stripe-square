@@ -143,7 +143,7 @@ app.use((req, res, next) => {
     });
   } catch (error) {
     console.error('FATAL ERROR during server startup:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error stack:', (error as Error).stack);
     process.exit(1);
   }
 })();
