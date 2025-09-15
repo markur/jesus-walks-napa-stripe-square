@@ -1671,5 +1671,120 @@ app.post("/api/ai/chat", async (req, res) => {
   }
 });
 
+// AI Agent endpoint - specialized for wine recommendations and customer service
+app.post("/api/ai/agent", async (req, res) => {
+  try {
+    const { message, context = 'general' } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    // Get the best available AI model (prefer Claude for wine expertise, fallback to GPT-4)
+    const models = await storage.getAllModelConfigs();
+    const activeModels = models.filter(m => m.active);
+    
+    // Prefer Claude 3.5 Sonnet for wine recommendations, GPT-4o as fallback
+    let selectedModel = activeModels.find(m => m.provider === 'anthropic' && m.modelId.includes('sonnet')) ||
+                       activeModels.find(m => m.provider === 'openai' && m.modelId === 'gpt-4o') ||
+                       activeModels[0];
+
+    if (!selectedModel) {
+      return res.status(500).json({ message: "No AI models available" });
+    }
+
+    // Create context-aware system prompts
+    const systemPrompts = {
+      wine: `You are a knowledgeable wine expert and sommelier assistant for an online wine platform. You specialize in:
+
+1. **Wine Recommendations**: Suggest wines based on taste preferences, food pairings, occasions, and budget
+2. **Wine Education**: Explain wine regions, grape varieties, vintage differences, and tasting notes
+3. **Food Pairing**: Recommend perfect wine and food combinations
+4. **Wine Storage**: Advise on proper storage, serving temperatures, and aging potential
+
+Guidelines:
+- Always ask clarifying questions to provide better recommendations
+- Consider user's experience level (beginner, intermediate, expert)
+- Suggest wines across different price ranges
+- Explain your reasoning for recommendations
+- Be friendly, approachable, and passionate about wine
+- If you don't know something specific, acknowledge it and offer to help find the information
+
+Current platform context: You're helping customers on a premium wine e-commerce platform with curated selections.`,
+
+      customerService: `You are a helpful customer service representative for a premium wine e-commerce platform. You assist customers with:
+
+1. **Order Support**: Order status, shipping, returns, and exchanges
+2. **Product Questions**: Wine details, availability, and recommendations
+3. **Account Help**: Login issues, profile updates, and preferences
+4. **Technical Support**: Website navigation, cart issues, and checkout problems
+5. **General Inquiries**: Company policies, delivery areas, and gift options
+
+Guidelines:
+- Be empathetic, professional, and solution-oriented
+- Always try to resolve issues or direct to the right resource
+- For order-specific questions, ask for order numbers when needed
+- Escalate complex technical issues appropriately
+- Maintain a warm, welcoming tone that reflects premium service
+- If you cannot resolve something, clearly explain next steps
+
+Available actions: You can help with most inquiries, but for account changes or order modifications, direct users to contact support directly.`,
+
+      general: `You are a friendly AI assistant for a premium wine platform. You can help with:
+- Wine recommendations and education
+- Customer service questions
+- General platform assistance
+- Product information
+
+Ask the user what type of help they need to provide the most relevant assistance.`
+    };
+
+    // Select appropriate system prompt
+    const systemPrompt = systemPrompts[context as keyof typeof systemPrompts] || systemPrompts.general;
+
+    // Create messages array with system prompt
+    const chatMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: message }
+    ];
+
+    // Generate AI response based on provider
+    let aiResponse: string;
+    let tokenCount: number;
+
+    switch (selectedModel.provider) {
+      case 'openai':
+        aiResponse = await generateChatResponse(chatMessages, selectedModel);
+        tokenCount = await countTokens(aiResponse);
+        break;
+      case 'anthropic':
+        aiResponse = await generateClaudeResponse(chatMessages, selectedModel);
+        tokenCount = await countClaudeTokens(aiResponse);
+        break;
+      case 'gemini':
+        aiResponse = await generateGeminiResponse(chatMessages, selectedModel);
+        tokenCount = await countGeminiTokens(aiResponse);
+        break;
+      default:
+        throw new Error(`Unsupported AI provider: ${selectedModel.provider}`);
+    }
+
+    res.json({
+      response: aiResponse,
+      model: selectedModel.name,
+      provider: selectedModel.provider,
+      context,
+      tokenCount
+    });
+
+  } catch (error) {
+    console.error('Error in AI agent:', error);
+    res.status(500).json({ 
+      message: "Failed to get AI response", 
+      error: (error as Error).message 
+    });
+  }
+});
+
   return server;
 }
