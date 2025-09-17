@@ -81,59 +81,6 @@ const writeFileAsync = promisify(fs.writeFile);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
-  // Simple admin recovery route for development
-  app.get("/api/admin-recovery", async (req, res) => {
-    try {
-      console.log("Admin recovery endpoint accessed");
-
-      // Find the markur user
-      const user = await storage.getUserByUsername("markur");
-      console.log("Found user:", user ? user.username : "not found");
-
-      if (!user) {
-        console.log("User 'markur' not found, creating admin user");
-        // Create admin user if doesn't exist
-        const newAdmin = await storage.createUser({
-          username: "markur",
-          password: "TempPass2025!",
-          email: "admin@jesuswalks.com",
-          isAdmin: true
-        });
-
-        console.log("Admin user created successfully");
-
-        return res.json({
-          success: true,
-          message: "Admin user created successfully",
-          credentials: {
-            username: "markur",
-            password: "TempPass2025!"
-          }
-        });
-      }
-
-      // Reset password to a temporary one
-      const tempPassword = "TempPass2025!";
-      await storage.updateUserPassword(user.id, tempPassword);
-      console.log("Password reset completed");
-
-      return res.json({
-        success: true,
-        message: "Password reset successful",
-        credentials: {
-          username: "markur",
-          password: "TempPass2025!"
-        }
-      });
-    } catch (error) {
-      console.error("Admin recovery error:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to reset password",
-        error: (error as Error).message
-      });
-    }
-  });
 
   // Special route to create an admin user (for initial setup)
   app.post("/api/create-admin", async (req, res) => {
@@ -1785,6 +1732,218 @@ Ask the user what type of help they need to provide the most relevant assistance
     });
   }
 });
+
+// Product Recommendation API with RAG
+app.post("/api/ai/recommend", async (req, res) => {
+  try {
+    const { query, limit = 5, category } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ message: "Query is required" });
+    }
+
+    console.log(`Product recommendation request: "${query}" (category: ${category || 'all'})`);
+
+    // Get all products (or filtered by category)
+    let products = await storage.getAllProducts();
+    if (category) {
+      products = await storage.getProductsByCategory(category);
+    }
+
+    if (products.length === 0) {
+      return res.json({
+        recommendations: [],
+        message: "No products available for recommendations",
+        query,
+        totalProducts: 0
+      });
+    }
+
+    // Import embeddings service
+    const { searchProducts, generateProductEmbeddingsBatch } = await import("./services/embeddings.js");
+
+    // Get existing embeddings from database
+    const existingEmbeddings = await storage.getProductEmbeddings();
+    console.log(`Found ${existingEmbeddings.length} existing embeddings in database`);
+    
+    // Check if we need to generate embeddings for any new products
+    const productsWithoutEmbeddings = products.filter(product => 
+      !existingEmbeddings.some(emb => emb.productId === product.id)
+    );
+    
+    if (productsWithoutEmbeddings.length > 0) {
+      console.log(`Generating embeddings for ${productsWithoutEmbeddings.length} new products...`);
+      const { generateProductEmbeddingsBatch } = await import("./services/embeddings.js");
+      const newEmbeddings = await generateProductEmbeddingsBatch(productsWithoutEmbeddings);
+      
+      // Store new embeddings in database
+      for (const embedding of newEmbeddings) {
+        await storage.storeProductEmbedding({
+          productId: embedding.productId,
+          content: embedding.content,
+          embedding: embedding.embedding
+        });
+      }
+      
+      console.log(`Generated and stored ${newEmbeddings.length} new product embeddings`);
+    }
+
+    // Get all embeddings (including newly generated ones)
+    const allEmbeddings = await storage.getProductEmbeddings();
+    
+    // Perform efficient semantic search using stored embeddings
+    const { searchProductsWithStoredEmbeddings } = await import("./services/embeddings.js");
+    const recommendations = await searchProductsWithStoredEmbeddings(query, products, allEmbeddings, limit);
+    
+    // Enhance with AI-generated explanations
+    const enhancedRecommendations = await Promise.all(
+      recommendations.map(async (product) => {
+        // Get context from knowledge base if relevant
+        const knowledgeBase = await storage.getKnowledgeByCategory('wine');
+        const wineKnowledge = knowledgeBase.map(kb => kb.content).join(' ');
+
+        // Create enhanced recommendation with AI explanation
+        const explanation = await generateRecommendationExplanation(
+          query, 
+          product, 
+          wineKnowledge
+        );
+
+        return {
+          ...product,
+          similarity: product.similarity,
+          aiExplanation: explanation,
+          matchReason: getMatchReason(product.similarity)
+        };
+      })
+    );
+
+    res.json({
+      recommendations: enhancedRecommendations,
+      query,
+      totalProducts: products.length,
+      searchMethod: "semantic_similarity"
+    });
+
+  } catch (error) {
+    console.error('Product recommendation error:', error);
+    res.status(500).json({ 
+      message: "Failed to generate recommendations", 
+      error: (error as Error).message 
+    });
+  }
+});
+
+// Knowledge Base Search API
+app.post("/api/ai/knowledge", async (req, res) => {
+  try {
+    const { query, category } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ message: "Query is required" });
+    }
+
+    console.log(`Knowledge search request: "${query}" (category: ${category || 'all'})`);
+
+    // Use the robust tokenized keyword search that splits queries into words
+    // and matches them flexibly across title/content/tags
+    const scoredEntries = await storage.searchKnowledgeByTokens(query, category);
+    
+    // Take top 3 most relevant results
+    const topEntries = scoredEntries.slice(0, 3);
+
+    // Generate AI response using the knowledge
+    if (topEntries.length > 0) {
+      const context = topEntries.map(entry => entry.content).join('\n\n');
+      const aiResponse = await generateKnowledgeResponse(query, context);
+      
+      res.json({
+        answer: aiResponse,
+        sources: topEntries,
+        query,
+        foundRelevant: true
+      });
+    } else {
+      res.json({
+        answer: "I don't have specific information about that in my knowledge base. Could you rephrase your question or try a different topic?",
+        sources: [],
+        query,
+        foundRelevant: false
+      });
+    }
+
+  } catch (error) {
+    console.error('Knowledge search error:', error);
+    res.status(500).json({ 
+      message: "Failed to search knowledge base", 
+      error: (error as Error).message 
+    });
+  }
+});
+
+// Helper function to generate recommendation explanations
+async function generateRecommendationExplanation(
+  query: string, 
+  product: any, 
+  wineKnowledge: string
+): Promise<string> {
+  const { generateClaudeResponse } = await import("./services/anthropic.js");
+  
+  try {
+    const prompt = `Based on the user's request "${query}" and this product:
+
+Product: ${product.name}
+Description: ${product.description}
+Category: ${product.category}
+Price: $${product.price}
+
+Wine Knowledge Context: ${wineKnowledge}
+
+Explain in 1-2 sentences why this product matches their request, incorporating relevant wine knowledge where appropriate.`;
+
+    const explanation = await generateClaudeResponse(
+      [{ role: 'user', content: prompt }],
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 100, name: 'Claude 3.5 Sonnet', active: true, id: '1' }
+    );
+    
+    return explanation || `This ${product.name} matches your criteria and is available for $${product.price}.`;
+  } catch (error) {
+    console.error('Failed to generate explanation:', error);
+    return `This ${product.name} is recommended based on your search and is available for $${product.price}.`;
+  }
+}
+
+// Helper function to generate knowledge-based responses
+async function generateKnowledgeResponse(query: string, context: string): Promise<string> {
+  const { generateClaudeResponse } = await import("./services/anthropic.js");
+  
+  try {
+    const prompt = `User question: "${query}"
+
+Relevant knowledge base information:
+${context}
+
+Using the knowledge base information above, provide a helpful and accurate answer to the user's question. If the knowledge base doesn't contain enough information to fully answer the question, say so and provide what information is available.`;
+
+    const response = await generateClaudeResponse(
+      [{ role: 'user', content: prompt }],
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 200, name: 'Claude 3.5 Sonnet', active: true, id: '1' }
+    );
+    
+    return response || "I'm sorry, I couldn't generate a response based on the available information.";
+  } catch (error) {
+    console.error('Failed to generate knowledge response:', error);
+    return "I'm having trouble accessing my knowledge base right now. Please try again later.";
+  }
+}
+
+// Helper function to get match reason
+function getMatchReason(similarity: number): string {
+  if (similarity > 0.8) return "Excellent match";
+  if (similarity > 0.6) return "Good match"; 
+  if (similarity > 0.4) return "Moderate match";
+  return "Potential match";
+}
 
   return server;
 }

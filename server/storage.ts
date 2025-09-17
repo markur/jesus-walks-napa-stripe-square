@@ -1,5 +1,5 @@
-import { users, events, registrations, waitlist, products, orders, orderItems, modelConfigs, conversations, messages } from "@shared/schema";
-import type { User, Event, Registration, Waitlist, Product, Order, OrderItem, InsertUser, InsertEvent, InsertRegistration, InsertWaitlist, InsertProduct, InsertOrder, InsertOrderItem, ModelConfig, InsertModelConfig, Conversation, InsertConversation, Message, InsertMessage } from "@shared/schema";
+import { users, events, registrations, waitlist, products, orders, orderItems, modelConfigs, conversations, messages, productEmbeddings, knowledgeBase, knowledgeEmbeddings } from "@shared/schema";
+import type { User, Event, Registration, Waitlist, Product, Order, OrderItem, InsertUser, InsertEvent, InsertRegistration, InsertWaitlist, InsertProduct, InsertOrder, InsertOrderItem, ModelConfig, InsertModelConfig, Conversation, InsertConversation, Message, InsertMessage, ProductEmbedding, InsertProductEmbedding, KnowledgeBase, InsertKnowledgeBase, KnowledgeEmbedding, InsertKnowledgeEmbedding } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import session from "express-session";
@@ -66,6 +66,22 @@ export interface IStorage {
   // Message operations
   getConversationMessages(conversationId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+
+  // Product Embeddings operations
+  storeProductEmbedding(embedding: InsertProductEmbedding): Promise<ProductEmbedding>;
+  getProductEmbeddings(): Promise<ProductEmbedding[]>;
+  getProductEmbeddingByProductId(productId: number): Promise<ProductEmbedding | undefined>;
+  clearProductEmbeddings(): Promise<void>;
+
+  // Knowledge Base operations
+  getKnowledgeBase(): Promise<KnowledgeBase[]>;
+  getKnowledgeByCategory(category: string): Promise<KnowledgeBase[]>;
+  createKnowledgeEntry(entry: InsertKnowledgeBase): Promise<KnowledgeBase>;
+  searchKnowledgeByTokens(query: string, category?: string): Promise<Array<KnowledgeBase & { relevanceScore: number }>>;
+  
+  // Knowledge Embeddings operations
+  storeKnowledgeEmbedding(embedding: InsertKnowledgeEmbedding): Promise<KnowledgeEmbedding>;
+  getKnowledgeEmbeddings(): Promise<KnowledgeEmbedding[]>;
 
   updateUserPassword(userId: number, newPassword: string): Promise<void>;
   updateUserProfile(userId: number, updateData: any): Promise<User>;
@@ -255,10 +271,10 @@ export class DatabaseStorage implements IStorage {
     console.log('Fetching all users from database...');
     const allUsers = await db.select().from(users);
     console.log('Raw users from DB:', allUsers.length);
-    const sanitizedUsers = allUsers.map(user => ({
-      ...user,
-      password: undefined // Don't return password
-    }));
+    const sanitizedUsers = allUsers.map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword as User; // Return without password field
+    });
     console.log('Sanitized users:', sanitizedUsers.length);
     return sanitizedUsers;
   }
@@ -381,6 +397,149 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));
+  }
+
+  // RAG System - Product Embeddings Methods
+  async storeProductEmbedding(embedding: InsertProductEmbedding): Promise<ProductEmbedding> {
+    // Check if embedding already exists for this product
+    const existing = await this.getProductEmbeddingByProductId(embedding.productId);
+    
+    if (existing) {
+      // Update existing embedding
+      const [updatedEmbedding] = await db
+        .update(productEmbeddings)
+        .set({ 
+          content: embedding.content,
+          embedding: embedding.embedding,
+          updatedAt: new Date()
+        })
+        .where(eq(productEmbeddings.productId, embedding.productId))
+        .returning();
+      return updatedEmbedding;
+    } else {
+      // Create new embedding
+      const [newEmbedding] = await db.insert(productEmbeddings).values(embedding).returning();
+      return newEmbedding;
+    }
+  }
+
+  async getProductEmbeddings(): Promise<ProductEmbedding[]> {
+    return await db.select().from(productEmbeddings);
+  }
+
+  async getProductEmbeddingByProductId(productId: number): Promise<ProductEmbedding | undefined> {
+    const [embedding] = await db.select().from(productEmbeddings).where(eq(productEmbeddings.productId, productId));
+    return embedding;
+  }
+
+  async clearProductEmbeddings(): Promise<void> {
+    await db.delete(productEmbeddings);
+  }
+
+  // Knowledge Base Methods
+  async getKnowledgeBase(): Promise<KnowledgeBase[]> {
+    return await db.select().from(knowledgeBase).where(eq(knowledgeBase.isActive, true));
+  }
+
+  async getKnowledgeByCategory(category: string): Promise<KnowledgeBase[]> {
+    return await db.select().from(knowledgeBase)
+      .where(eq(knowledgeBase.category, category))
+      .where(eq(knowledgeBase.isActive, true));
+  }
+
+  async createKnowledgeEntry(entry: InsertKnowledgeBase): Promise<KnowledgeBase> {
+    const [newEntry] = await db.insert(knowledgeBase).values(entry).returning();
+    return newEntry;
+  }
+
+  // Knowledge Embeddings Methods
+  async storeKnowledgeEmbedding(embedding: InsertKnowledgeEmbedding): Promise<KnowledgeEmbedding> {
+    const [newEmbedding] = await db.insert(knowledgeEmbeddings).values(embedding).returning();
+    return newEmbedding;
+  }
+
+  async getKnowledgeEmbeddings(): Promise<KnowledgeEmbedding[]> {
+    return await db.select().from(knowledgeEmbeddings);
+  }
+
+  // Robust tokenized keyword search for knowledge base
+  async searchKnowledgeByTokens(query: string, category?: string): Promise<Array<KnowledgeBase & { relevanceScore: number }>> {
+    // Get all knowledge entries (filtered by category if provided)
+    const knowledgeEntries = category 
+      ? await this.getKnowledgeByCategory(category)
+      : await this.getKnowledgeBase();
+
+    // Clean and tokenize the query
+    const queryTokens = query
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      .split(/\s+/)
+      .filter(token => token.length > 1) // Remove single characters
+      .filter(token => !['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'].includes(token)); // Remove common stop words
+
+    if (queryTokens.length === 0) {
+      return [];
+    }
+
+    // Score each knowledge entry
+    const scoredEntries = knowledgeEntries.map(entry => {
+      const titleLower = entry.title.toLowerCase();
+      const contentLower = entry.content.toLowerCase();
+      const tagsLower = entry.tags.map(tag => tag.toLowerCase());
+
+      let score = 0;
+
+      // Score each query token
+      queryTokens.forEach(token => {
+        // Title matches - highest weight
+        if (titleLower.includes(token)) {
+          score += 3;
+        }
+
+        // Tag matches - high weight
+        const tagMatch = tagsLower.some(tag => tag.includes(token));
+        if (tagMatch) {
+          score += 2.5;
+        }
+
+        // Content matches - lower weight
+        if (contentLower.includes(token)) {
+          score += 1;
+        }
+
+        // Bonus points for exact word matches (word boundaries)
+        const wordBoundaryRegex = new RegExp(`\\b${token}\\b`, 'i');
+        if (wordBoundaryRegex.test(entry.title)) {
+          score += 1; // Exact word in title
+        }
+        if (tagsLower.some(tag => wordBoundaryRegex.test(tag))) {
+          score += 0.5; // Exact word in tag
+        }
+        if (wordBoundaryRegex.test(entry.content)) {
+          score += 0.5; // Exact word in content
+        }
+      });
+
+      // Bonus for matching multiple tokens
+      const matchedTokens = queryTokens.filter(token => 
+        titleLower.includes(token) || 
+        contentLower.includes(token) || 
+        tagsLower.some(tag => tag.includes(token))
+      );
+      
+      if (matchedTokens.length > 1) {
+        score += matchedTokens.length * 0.5; // Bonus for multiple matches
+      }
+
+      return {
+        ...entry,
+        relevanceScore: score
+      };
+    })
+    .filter(entry => entry.relevanceScore > 0)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    return scoredEntries;
   }
 }
 

@@ -298,3 +298,62 @@ export type Message = typeof messages.$inferSelect;
 export type InsertModelConfig = z.infer<typeof insertModelConfigSchema>;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+// Add tables for RAG system - product embeddings and knowledge base
+export const productEmbeddings = pgTable("product_embeddings", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  content: text("content").notNull(), // Combined name, description, category for search
+  embedding: jsonb("embedding").notNull(), // Store as JSON array
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const knowledgeBase = pgTable("knowledge_base", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull(), // 'wine', 'shipping', 'returns', 'general'
+  tags: text("tags").array().default([]),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const knowledgeEmbeddings = pgTable("knowledge_embeddings", {
+  id: serial("id").primaryKey(),
+  knowledgeId: integer("knowledge_id").references(() => knowledgeBase.id).notNull(),
+  content: text("content").notNull(),
+  embedding: jsonb("embedding").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Add schemas for RAG tables
+export const insertProductEmbeddingSchema = createInsertSchema(productEmbeddings).pick({
+  productId: true,
+  content: true,
+  embedding: true,
+});
+
+export const insertKnowledgeBaseSchema = createInsertSchema(knowledgeBase).pick({
+  title: true,
+  content: true,
+  category: true,
+  tags: true,
+  isActive: true,
+});
+
+export const insertKnowledgeEmbeddingSchema = createInsertSchema(knowledgeEmbeddings).pick({
+  knowledgeId: true,
+  content: true,
+  embedding: true,
+});
+
+// Add types for RAG tables
+export type ProductEmbedding = typeof productEmbeddings.$inferSelect;
+export type KnowledgeBase = typeof knowledgeBase.$inferSelect;
+export type KnowledgeEmbedding = typeof knowledgeEmbeddings.$inferSelect;
+export type InsertProductEmbedding = z.infer<typeof insertProductEmbeddingSchema>;
+export type InsertKnowledgeBase = z.infer<typeof insertKnowledgeBaseSchema>;
+export type InsertKnowledgeEmbedding = z.infer<typeof insertKnowledgeEmbeddingSchema>;
