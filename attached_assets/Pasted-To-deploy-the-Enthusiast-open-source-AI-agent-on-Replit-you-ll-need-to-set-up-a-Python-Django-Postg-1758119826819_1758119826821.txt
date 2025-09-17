@@ -1,0 +1,73 @@
+To deploy the Enthusiast open-source AI agent on Replit, you'll need to set up a Python/Django/PostgreSQL/React stack, clone the Enthusiast repository, and configure database, environment, and API credentials. Enthusiast is self-hostable and integrates easily with MedusaJS and popular e-commerce platforms, making it ideal for developer-led customization.
+
+Technical Prerequisites
+Repository: Enthusiast is available at https://github.com/upsidelab/enthusiast.
+
+Languages: Python, TypeScript, JavaScript, React, Django.
+
+Database: PostgreSQL required.
+
+Environment: Can run entirely on Replit, but make sure your Replit workspace offers enough resources for PostgreSQL and Django.
+
+Integrations: Native MedusaJS support; can connect to other platforms by API.
+
+Step-by-Step Setup on Replit
+Import Project
+
+Use "Import from GitHub" on Replit and paste the Enthusiast repo URL.
+
+Configure Stack
+
+You need to enable Replit’s PostgreSQL database or set up a remote PostgreSQL instance.
+
+The backend runs on Python (Django framework); the frontend is React/TypeScript.
+
+Install Dependencies
+
+In the Replit shell, run:
+
+text
+pip install -r requirements.txt
+npm install --prefix frontend
+Make sure to install database adapters for Python if your Replit setup requires manual additions.
+
+Configure Environment Variables
+
+Copy .env.example to .env in the backend directory.
+
+Set required values:
+
+DATABASE_URL (your Postgres instance)
+
+OPENAI_API_KEY or other LLM providers
+
+Any Medusa store credentials if connecting to an e-commerce backend.
+
+Run Database Migrations
+
+Migrate initial schema:
+
+text
+python manage.py migrate
+Start Application
+
+Launch using:
+
+text
+python manage.py runserver
+npm start --prefix frontend
+Develop and Customize
+
+Modify Python/React code as needed to fit workflow and appearance needs.
+
+Additional Tips
+Agent Configuration: You can link product catalog, set up custom product suggestion logic, and automate support responses by modifying config files and workflow scripts in the Enthusiast repo.
+
+API Integration: Enthusiast supports OpenAI, Mistral, Llama, and Deepseek out-of-the-box for AI model connection.
+
+Open Source License: Enthusiast is MIT licensed, so customization and redistribution are fully allowed.
+
+MedusaJS Integration: If your stack uses Medusa, simply follow Medusa's authentication and connection guides, then configure Enthusiast by pointing to your Medusa API endpoint in the .env file.
+
+This setup gives you a robust, developer-friendly AI agent that can power product search, suggestions, content automation, and customer support in your web app on Replit.
+
