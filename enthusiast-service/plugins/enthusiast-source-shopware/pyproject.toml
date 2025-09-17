@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "enthusiast-source-shopware"
+version = "1.0.1"
+description = "A plugin for Enthusiast that provides a Shopware products importer."
+authors = ["Mateusz Porebski <mateusz.porebski@upsidelab.io>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+enthusiast-common = ">=1,<2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

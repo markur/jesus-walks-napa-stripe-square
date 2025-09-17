@@ -1,6 +1,7 @@
 
 {pkgs}: {
   deps = [
+    pkgs.redis
     pkgs.psmisc
     pkgs.unixtools.nettools
     pkgs.texinfoInteractive
