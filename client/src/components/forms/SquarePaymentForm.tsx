@@ -104,7 +104,10 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       // Load Square SDK with a promise wrapper for better error handling
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
+        const isProduction = process.env.NODE_ENV === 'production';
+        script.src = isProduction 
+          ? 'https://web.squarecdn.com/v1/square.js'
+          : 'https://sandbox.web.squarecdn.com/v1/square.js';
         script.async = true;
         
         script.onload = () => {
@@ -162,14 +165,30 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
 
       console.log('Square payments instance created');
 
-      // Create card with minimal configuration
+      // Create card with proper configuration for better UX
       const card = await paymentsRef.current.card({
         style: {
           input: {
             fontSize: '16px',
-            padding: '12px'
+            padding: '12px',
+            color: '#000000',
+            backgroundColor: '#ffffff'
+          },
+          '.input-container': {
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#d1d5db',
+            borderRadius: '6px'
+          },
+          '.input-container.is-focus': {
+            borderColor: '#3b82f6',
+            borderWidth: '2px'
+          },
+          '.input-container.is-error': {
+            borderColor: '#ef4444'
           }
-        }
+        },
+        includeInputLabels: true
       });
 
       console.log('Square card created, attaching to container');
@@ -252,25 +271,16 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-4 border rounded-lg bg-gray-50">
-          <div className="text-sm text-gray-600 mb-3">
-            <strong>Test Card Information:</strong>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Card Number:</span>
-              <span className="font-mono">4111 1111 1111 1111</span>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="p-3 border rounded-lg bg-blue-50 border-blue-200">
+            <div className="text-sm text-blue-800 mb-2">
+              <strong>Development Mode - Test Card:</strong>
             </div>
-            <div className="flex justify-between">
-              <span>Expiry:</span>
-              <span>12/25</span>
-            </div>
-            <div className="flex justify-between">
-              <span>CVV:</span>
-              <span>123</span>
+            <div className="text-xs text-blue-600">
+              Use: 4111 1111 1111 1111, Exp: 12/25, CVV: 123
             </div>
           </div>
-        </div>
+        )}
 
         {/* Square Card Container - Fixed ID */}
         <div 
