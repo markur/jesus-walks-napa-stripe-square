@@ -17,8 +17,12 @@ localPort = 3000
 externalPort = 3000
 
 [[ports]]
-localPort = 24678
-externalPort = 3000
+localPort = 6000
+externalPort = 6000
+
+[[ports]]
+localPort = 9000
+externalPort = 9000
 
 [workflows]
 runButton = "Project"
@@ -31,6 +35,14 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Redis Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Textbelt SMS Server"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -70,6 +82,30 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Redis Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "redis-server --port 6000 --dir /tmp/redis"
+waitForPort = 6000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Textbelt SMS Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd textbelt-sms && REDIS_URL=redis://localhost:6000 PORT=9000 node server/app.js"
+waitForPort = 9000
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-3494e7b6-12cb-45b2-87ad-9dabb2b1782e"
