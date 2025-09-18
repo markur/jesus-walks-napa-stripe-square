@@ -60,6 +60,11 @@ function CheckoutForm() {
       .email("Please enter a valid email address")
       .min(5, "Email must be at least 5 characters")
       .max(50, "Email cannot exceed 50 characters"),
+    phone: z.string()
+      .optional()
+      .refine((value) => !value || /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/.test(value), {
+        message: "Please enter a valid phone number (e.g., (555) 123-4567)"
+      }),
   });
 
   type BillingForm = z.infer<typeof billingSchema>;
@@ -270,15 +275,56 @@ function CheckoutForm() {
       throw new Error(submitError.message);
     }
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/order-confirmation`,
-      },
+      redirect: 'if_required',
     });
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // Payment successful, now create the order
+      await createOrder(data);
+    }
+  };
+
+  const createOrder = async (data: BillingForm) => {
+    try {
+      const orderData = {
+        items: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        total: total,
+        shippingAddress: shippingAddress,
+        paymentMethod: 'stripe',
+        phoneNumber: data.phone
+      };
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const result = await response.json();
+      console.log('Order created successfully:', result);
+
+      // Clear cart and redirect to confirmation
+      clearCart();
+      setLocation('/order-confirmation');
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      throw new Error('Order creation failed. Please contact support.');
     }
   };
 
@@ -476,6 +522,28 @@ function CheckoutForm() {
                     )}
                   />
                 </div>
+
+                {/* Phone Number Field (Optional for SMS notifications) */}
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          {...field} 
+                          placeholder="(555) 123-4567"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        We'll send you SMS updates about your order if provided
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <h3 className="text-md font-semibold mt-4">Choose Payment Method</h3>
 

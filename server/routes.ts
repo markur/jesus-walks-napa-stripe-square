@@ -445,6 +445,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer order creation (after successful payment)
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const { items, total, shippingAddress, paymentMethod, phoneNumber } = req.body;
+
+      console.log("Creating customer order with data:", { items, total, shippingAddress, paymentMethod, phoneNumber });
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Invalid order data - no items provided" });
+      }
+
+      if (!total || total <= 0) {
+        return res.status(400).json({ message: "Invalid order total" });
+      }
+
+      // For now, create orders without requiring user authentication
+      // This allows for guest checkout functionality
+      let userId = null;
+      let userEmail = 'guest@example.com';
+
+      // If session exists and user is logged in, use that user
+      if (req.session && req.session.userId) {
+        try {
+          const user = await storage.getUser(req.session.userId);
+          if (user) {
+            userId = req.session.userId;
+            userEmail = user.email;
+          }
+        } catch (error) {
+          console.log("Could not get user from session, proceeding as guest");
+        }
+      }
+
+      // Verify products exist and have sufficient stock
+      for (const item of items) {
+        const product = await storage.getProduct(item.productId);
+        if (!product) {
+          return res.status(404).json({ message: `Product ${item.productId} not found` });
+        }
+        if (product.stock < item.quantity) {
+          return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        }
+      }
+
+      // Create the order
+      const order = await storage.createOrder({
+        userId,
+        status: 'confirmed',
+        total: parseFloat(total),
+        shippingAddress: JSON.stringify(shippingAddress),
+        items
+      });
+
+      // Update product stock
+      for (const item of items) {
+        const currentProduct = await storage.getProduct(item.productId);
+        if (currentProduct) {
+          const newStock = currentProduct.stock - item.quantity;
+          await storage.updateProductStock(item.productId, newStock);
+        }
+      }
+
+      // Send order confirmation email
+      try {
+        const { emailService } = await import('./services/email.js');
+        await emailService.sendOrderConfirmationEmail(userEmail, order);
+      } catch (emailError) {
+        console.error("Failed to send order confirmation email:", emailError);
+        // Don't fail the order creation if email fails
+      }
+
+      // Send SMS confirmation if phone number provided
+      if (phoneNumber) {
+        try {
+          const { smsService } = await import('./services/sms.js');
+          await smsService.sendOrderConfirmationSMS(phoneNumber, order);
+        } catch (smsError) {
+          console.error("Failed to send order confirmation SMS:", smsError);
+          // Don't fail the order creation if SMS fails
+        }
+      }
+
+      res.status(201).json({ 
+        message: "Order created successfully", 
+        order 
+      });
+    } catch (error: any) {
+      console.error("Customer order creation error:", error);
+      res.status(500).json({ message: "Failed to create order", error: error.message });
+    }
+  });
+
   app.get("/api/orders", requireAdmin, async (_req, res) => {
     try {
       const orders = await storage.getAllOrders();
