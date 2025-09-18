@@ -448,22 +448,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer order creation (after successful payment)
   app.post("/api/orders", async (req, res) => {
     try {
-      const { items, total, shippingAddress, paymentMethod, phoneNumber } = req.body;
+      const { items, total, shippingAddress, paymentMethod, phoneNumber, customerEmail } = req.body;
 
-      console.log("Creating customer order with data:", { items, total, shippingAddress, paymentMethod, phoneNumber });
+      // Mask PII in logs for privacy
+      console.log("Creating customer order with data:", { 
+        items, 
+        total, 
+        shippingAddress, 
+        paymentMethod, 
+        phoneNumber: phoneNumber ? phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3') : undefined,
+        customerEmail: customerEmail ? customerEmail.replace(/(.{2}).*(@.*)/, '$1***$2') : undefined
+      });
 
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Invalid order data - no items provided" });
       }
 
-      if (!total || total <= 0) {
-        return res.status(400).json({ message: "Invalid order total" });
+      if (!customerEmail || !customerEmail.includes('@')) {
+        return res.status(400).json({ message: "Valid customer email is required" });
       }
 
-      // For now, create orders without requiring user authentication
-      // This allows for guest checkout functionality
+      // Validate and calculate server-side total from products
+      let calculatedTotal = 0;
+      const verifiedItems = [];
+
+      for (const item of items) {
+        const product = await storage.getProduct(item.productId);
+        if (!product) {
+          return res.status(404).json({ message: `Product ${item.productId} not found` });
+        }
+        if (product.stock < item.quantity) {
+          return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        }
+        
+        const itemTotal = product.price * item.quantity;
+        calculatedTotal += itemTotal;
+        verifiedItems.push({
+          ...item,
+          price: product.price // Use server-side price
+        });
+      }
+
+      // Verify client total matches server calculation (with small tolerance for floating point)
+      if (Math.abs(calculatedTotal - total) > 0.01) {
+        return res.status(400).json({ 
+          message: "Order total mismatch", 
+          clientTotal: total, 
+          serverTotal: calculatedTotal 
+        });
+      }
+
+      // Set user information
       let userId = null;
-      let userEmail = 'guest@example.com';
+      let userEmail = customerEmail;
 
       // If session exists and user is logged in, use that user
       if (req.session && req.session.userId) {
@@ -478,24 +515,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Verify products exist and have sufficient stock
-      for (const item of items) {
-        const product = await storage.getProduct(item.productId);
-        if (!product) {
-          return res.status(404).json({ message: `Product ${item.productId} not found` });
-        }
-        if (product.stock < item.quantity) {
-          return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
-        }
-      }
-
-      // Create the order
+      // Create the order with server-verified data
       const order = await storage.createOrder({
         userId,
         status: 'confirmed',
-        total: parseFloat(total),
+        total: calculatedTotal,
         shippingAddress: JSON.stringify(shippingAddress),
-        items
+        items: verifiedItems
       });
 
       // Update product stock
@@ -1382,48 +1408,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Orders endpoint for checkout
-  app.post("/api/orders", async (req, res) => {
-    try {
-      console.log('=== ORDER CREATION ===');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-
-      const { items, total, shippingAddress, paymentMethod = 'stripe' } = req.body;
-
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: "No items provided" });
-      }
-
-      if (!total || total <= 0) {
-        return res.status(400).json({ error: "Invalid total amount" });
-      }
-
-      // For now, simulate order creation without user authentication
-      const order = {
-        id: Date.now(),
-        items,
-        total,
-        shippingAddress,
-        paymentMethod,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-
-      console.log('Order created:', order);
-
-      res.status(201).json({ 
-        success: true,
-        order,
-        message: "Order created successfully" 
-      });
-    } catch (error: any) {
-      console.error("Order creation error:", error);
-      res.status(500).json({
-        error: "Failed to create order",
-        details: (error as Error).message
-      });
-    }
-  });
 
   // Catch-all route for client-side routing - must be last
   app.get('*', (req, res, next) => {

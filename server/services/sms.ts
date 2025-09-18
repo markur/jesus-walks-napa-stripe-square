@@ -32,7 +32,7 @@ export class SMSService {
 
   async sendSMS(phoneNumber: string, message: string): Promise<boolean> {
     if (!this.enabled) {
-      console.log(`[SIMULATED] SMS would be sent to: ${phoneNumber} with message: ${message}`);
+      console.log(`[SIMULATED] SMS would be sent to: ${this.maskPhoneNumber(phoneNumber)}`);
       return true;
     }
 
@@ -41,14 +41,17 @@ export class SMSService {
       const cleanedPhone = phoneNumber.replace(/\D/g, '');
       
       if (cleanedPhone.length < 10) {
-        console.error(`Invalid phone number: ${phoneNumber}`);
+        console.error(`Invalid phone number format`);
         return false;
       }
 
-      const response = await axios.post(`${this.config.textbeltUrl}/text`, {
-        number: cleanedPhone,
-        message: message
-      }, {
+      // Use URLSearchParams for proper form encoding
+      const formData = new URLSearchParams();
+      formData.append('phone', cleanedPhone);
+      formData.append('message', message);
+      formData.append('key', process.env.TEXTBELT_KEY || 'textbelt');
+
+      const response = await axios.post(`${this.config.textbeltUrl}/text`, formData, {
         timeout: 30000, // 30 second timeout
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -56,7 +59,7 @@ export class SMSService {
       });
 
       if (response.data?.success) {
-        console.log(`SMS sent successfully to: ${phoneNumber}`);
+        console.log(`SMS sent successfully to: ${this.maskPhoneNumber(phoneNumber)}`);
         return true;
       } else {
         console.error('SMS failed:', response.data);
@@ -66,6 +69,14 @@ export class SMSService {
       console.error('Failed to send SMS:', error.message);
       return false;
     }
+  }
+
+  private maskPhoneNumber(phoneNumber: string): string {
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    if (cleaned.length >= 10) {
+      return `${cleaned.slice(0, 3)}-***-${cleaned.slice(-4)}`;
+    }
+    return '***-****';
   }
 
   async sendOrderConfirmationSMS(phoneNumber: string, order: any): Promise<boolean> {

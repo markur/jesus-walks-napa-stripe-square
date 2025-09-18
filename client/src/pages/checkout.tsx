@@ -90,30 +90,22 @@ function CheckoutForm() {
     try {
       setIsProcessing(true);
 
-      // Create order record
-      const orderData = {
-        total: total + (selectedRate?.rate || 0),
-        shippingAddress,
-        shippingRate: selectedRate,
-        paymentMethod: 'square',
-        paymentDetails: result
-      };
-
-      const response = await apiRequest("POST", "/api/orders", orderData);
-
-      if (response.ok) {
-        clearCart();
-        setLocation('/order-confirmation');
-      } else {
-        throw new Error('Failed to create order');
+      // Get form data for order creation
+      const formData = form.getValues();
+      if (!formData.email) {
+        throw new Error('Email is required for order confirmation');
       }
-    } catch (error: any) {
-      setPaymentError(error.message);
-      toast({
-        title: "Order Creation Failed",
-        description: "Payment was successful but order creation failed. Please contact support.",
-        variant: "destructive",
-      });
+
+      // Create order using the same API as Stripe
+      await createOrderWithData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      }, 'square');
+      
+    } catch (error) {
+      console.error('Square payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
@@ -123,63 +115,47 @@ function CheckoutForm() {
     try {
       setIsProcessing(true);
 
-      // Create order record
-      const orderData = {
-        total: total + (selectedRate?.rate || 0),
-        shippingAddress,
-        shippingRate: selectedRate,
-        paymentMethod: 'safekey',
-        paymentDetails: result
-      };
-
-      const response = await apiRequest("POST", "/api/orders", orderData);
-
-      if (response.ok) {
-        clearCart();
-        setLocation('/order-confirmation');
-      } else {
-        throw new Error('Failed to create order');
+      // Get form data for order creation
+      const formData = form.getValues();
+      if (!formData.email) {
+        throw new Error('Email is required for order confirmation');
       }
-    } catch (error: any) {
-      setPaymentError(error.message);
-      toast({
-        title: "Order Creation Failed",
-        description: "Payment was successful but order creation failed. Please contact support.",
-        variant: "destructive",
-      });
+
+      // Create order using the same API as Stripe
+      await createOrderWithData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      }, 'safekey');
+      
+    } catch (error) {
+      console.error('SafeKey payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
   };
 
-   const handleApplePayPaymentSuccess = async (result: any) => {
+  const handleApplePayPaymentSuccess = async (result: any) => {
     try {
       setIsProcessing(true);
 
-      // Create order record
-      const orderData = {
-        total: total + (selectedRate?.rate || 0),
-        shippingAddress,
-        shippingRate: selectedRate,
-        paymentMethod: 'apple_pay',
-        paymentDetails: result
-      };
-
-      const response = await apiRequest("POST", "/api/orders", orderData);
-
-      if (response.ok) {
-        clearCart();
-        setLocation('/order-confirmation');
-      } else {
-        throw new Error('Failed to create order');
+      // Get form data for order creation
+      const formData = form.getValues();
+      if (!formData.email) {
+        throw new Error('Email is required for order confirmation');
       }
-    } catch (error: any) {
-      setPaymentError(error.message);
-      toast({
-        title: "Order Creation Failed",
-        description: "Payment was successful but order creation failed. Please contact support.",
-        variant: "destructive",
-      });
+
+      // Create order using the same API as Stripe
+      await createOrderWithData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      }, 'apple_pay');
+      
+    } catch (error) {
+      console.error('Apple Pay payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
@@ -189,63 +165,47 @@ function CheckoutForm() {
     try {
       setIsProcessing(true);
 
-      // Create order record
-      const orderData = {
-        total: total + (selectedRate?.rate || 0),
-        shippingAddress,
-        shippingRate: selectedRate,
-        paymentMethod: 'google_pay',
-        paymentDetails: result
-      };
-
-      const response = await apiRequest("POST", "/api/orders", orderData);
-
-      if (response.ok) {
-        clearCart();
-        setLocation('/order-confirmation');
-      } else {
-        throw new Error('Failed to create order');
+      // Get form data for order creation
+      const formData = form.getValues();
+      if (!formData.email) {
+        throw new Error('Email is required for order confirmation');
       }
-    } catch (error: any) {
-      setPaymentError(error.message);
-      toast({
-        title: "Order Creation Failed",
-        description: "Payment was successful but order creation failed. Please contact support.",
-        variant: "destructive",
-      });
+
+      // Create order using the same API as Stripe
+      await createOrderWithData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      }, 'google_pay');
+      
+    } catch (error) {
+      console.error('Google Pay payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
   };
 
-    const handleCryptoPaymentSuccess = async (result: any) => {
+  const handleCryptoPaymentSuccess = async (result: any) => {
     try {
       setIsProcessing(true);
 
-      // Create order record
-      const orderData = {
-        total: total + (selectedRate?.rate || 0),
-        shippingAddress,
-        shippingRate: selectedRate,
-        paymentMethod: 'crypto',
-        paymentDetails: result
-      };
-
-      const response = await apiRequest("POST", "/api/orders", orderData);
-
-      if (response.ok) {
-        clearCart();
-        setLocation('/order-confirmation');
-      } else {
-        throw new Error('Failed to create order');
+      // Get form data for order creation
+      const formData = form.getValues();
+      if (!formData.email) {
+        throw new Error('Email is required for order confirmation');
       }
-    } catch (error: any) {
-      setPaymentError(error.message);
-      toast({
-        title: "Order Creation Failed",
-        description: "Payment was successful but order creation failed. Please contact support.",
-        variant: "destructive",
-      });
+
+      // Create order using the same API as Stripe
+      await createOrderWithData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone
+      }, 'crypto');
+      
+    } catch (error) {
+      console.error('Crypto payment error:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
@@ -291,6 +251,10 @@ function CheckoutForm() {
   };
 
   const createOrder = async (data: BillingForm) => {
+    await createOrderWithData(data, 'stripe');
+  };
+
+  const createOrderWithData = async (data: BillingForm, paymentMethod: string) => {
     try {
       const orderData = {
         items: items.map(item => ({
@@ -300,8 +264,9 @@ function CheckoutForm() {
         })),
         total: total,
         shippingAddress: shippingAddress,
-        paymentMethod: 'stripe',
-        phoneNumber: data.phone
+        paymentMethod: paymentMethod,
+        phoneNumber: data.phone,
+        customerEmail: data.email
       };
 
       const response = await fetch('/api/orders', {
