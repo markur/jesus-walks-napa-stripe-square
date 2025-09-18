@@ -422,8 +422,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update product stock
       for (const item of items) {
         const currentProduct = await storage.getProduct(item.productId);
-        const newStock = currentProduct.stock - item.quantity;
-        await storage.updateProductStock(item.productId, newStock);
+        if (currentProduct) {
+          const newStock = currentProduct.stock - item.quantity;
+          await storage.updateProductStock(item.productId, newStock);
+        }
       }
 
       // Send order confirmation email
@@ -441,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Admin order creation error:", error);
-      res.status(500).json({ message: "Failed to create order", error: error.message });
+      res.status(500).json({ message: "Failed to create order", error: error instanceof Error ? error instanceof Error ? error.message : 'Unknown error' : 'Unknown error' });
     }
   });
 
@@ -481,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
         }
         
-        const itemTotal = product.price * item.quantity;
+        const itemTotal = Number(product.price) * Number(item.quantity);
         calculatedTotal += itemTotal;
         verifiedItems.push({
           ...item,
@@ -557,9 +559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Order created successfully", 
         order 
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Customer order creation error:", error);
-      res.status(500).json({ message: "Failed to create order", error: error.message });
+      res.status(500).json({ message: "Failed to create order", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -653,7 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create user", error: error.message });
+      res.status(500).json({ message: "Failed to create user", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -831,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid product data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create product", error: error.message });
+      res.status(500).json({ message: "Failed to create product", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -878,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Test product creation error:", error);
-      res.status(500).json({ message: "Failed to create test product", error: error.message });
+      res.status(500).json({ message: "Failed to create test product", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -908,7 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Development product creation error:", error);
-      res.status(500).json({ message: "Failed to create development product", error: error.message });
+      res.status(500).json({ message: "Failed to create development product", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1082,7 +1084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clientSecret: paymentIntent.client_secret,
         total: total
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Checkout payment intent error:", error);
       res.status(500).json({
         error: "Error creating payment intent",
@@ -1157,7 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Payment intent created successfully:', paymentIntent.id);
 
       res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Stripe error:", error);
       res.status(500).json({
         error: "Error creating payment intent",
@@ -1179,7 +1181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : 'YOUR_PRODUCTION_LOCATION_ID', // Replace with your production location ID
         environment: isDevelopment ? 'sandbox' : 'production'
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Square config error:", error);
       res.status(500).json({
         error: "Failed to get Square configuration"
@@ -1265,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { getApplePayConfig } = require('./services/mobile-payments.js');
       res.json(getApplePayConfig());
-    } catch (error: any) {
+    } catch (error) {
       console.error('Apple Pay config error:', error);
       res.status(500).json({
         success: false,
@@ -1279,7 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { getGooglePayConfig } = require('./services/mobile-payments.js');
       res.json(getGooglePayConfig());
-    } catch (error: any) {
+    } catch (error) {
       console.error('Google Pay config error:', error);
       res.status(500).json({
         success: false,
@@ -1294,7 +1296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { processApplePayPayment } = require('./services/mobile-payments.js');
       const result = await processApplePayPayment(req.body);
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Apple Pay payment error:', error);
       res.status(500).json({
         success: false,
@@ -1309,7 +1311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { processGooglePayPayment } = require('./services/mobile-payments.js');
       const result = await processGooglePayPayment(req.body);
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Google Pay payment error:', error);
       res.status(500).json({
         success: false,
@@ -1325,7 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currency = req.query.currency as string || 'USD';
       const rates = await getCryptoExchangeRates(currency);
       res.json(rates);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Crypto exchange rates error:', error);
       res.status(500).json({
         success: false,
@@ -1340,7 +1342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { processStripeCryptoPayment } = await import('./services/crypto-payments.js');
       const result = await processStripeCryptoPayment(req.body);
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Stripe crypto payment error:', error);
       res.status(500).json({
         success: false,
@@ -1361,7 +1363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { processCoinbaseCryptoPayment } = await import('./services/crypto-payments.js');
       const result = await processCoinbaseCryptoPayment(req.body);
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Coinbase crypto payment error:', error);
       res.status(500).json({
         success: false,
@@ -1377,7 +1379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { paymentId, provider } = req.body;
       const result = await verifyCryptoPayment(paymentId, provider);
       res.json(result);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Crypto payment verification error:', error);
       res.status(500).json({
         success: false,
@@ -2004,7 +2006,7 @@ Explain in 1-2 sentences why this product matches their request, incorporating r
 
     const explanation = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
-      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 100, name: 'Claude 3.5 Sonnet', active: true, id: '1' }
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 100, name: 'Claude 3.5 Sonnet', active: true, id: 1 }
     );
     
     return explanation || `This ${product.name} matches your criteria and is available for $${product.price}.`;
@@ -2028,7 +2030,7 @@ Using the knowledge base information above, provide a helpful and accurate answe
 
     const response = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
-      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 200, name: 'Claude 3.5 Sonnet', active: true, id: '1' }
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 200, name: 'Claude 3.5 Sonnet', active: true, id: 1 }
     );
     
     return response || "I'm sorry, I couldn't generate a response based on the available information.";

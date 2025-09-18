@@ -132,7 +132,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     } catch (error) {
       console.error('Square initialization error:', error);
       if (mountedRef.current) {
-        onPaymentError(`Failed to initialize Square: ${error.message}`);
+        onPaymentError(`Failed to initialize Square: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
@@ -206,7 +206,7 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     } catch (error) {
       console.error('Square card creation error:', error);
       if (mountedRef.current) {
-        onPaymentError(`Payment form initialization failed: ${error.message}`);
+        onPaymentError(`Payment form initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
@@ -236,9 +236,9 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         const errorMessage = result.errors?.[0]?.message || 'Payment validation failed';
         onPaymentError(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error) {
       if (mountedRef.current) {
-        onPaymentError(error.message || 'Payment processing failed');
+        onPaymentError(error instanceof Error ? error.message : 'Payment processing failed');
       }
     } finally {
       if (mountedRef.current) {
