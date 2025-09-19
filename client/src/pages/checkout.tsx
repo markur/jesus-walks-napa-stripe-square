@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Loader2, AlertCircle, CheckCircle2, CreditCard } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -371,8 +371,7 @@ function CheckoutForm() {
                     city: "Napa",
                     state: "CA",
                     postalCode: "94559",
-                    country: "US",
-                    phone: "555-123-4567"
+                    country: "US"
                   };
                   handleAddressValidated(testAddress);
 
@@ -424,7 +423,6 @@ function CheckoutForm() {
                       {shippingAddress.address2 && <p>{shippingAddress.address2}</p>}
                       <p>{shippingAddress.city}, {shippingAddress.state} {shippingAddress.postalCode}</p>
                       <p>{shippingAddress.country}</p>
-                      <p>{shippingAddress.phone}</p>
 
                       <div className="mt-3 pt-3 border-t">
                         <p className="font-medium">Shipping Method:</p>
