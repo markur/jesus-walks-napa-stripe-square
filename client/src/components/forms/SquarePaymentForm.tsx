@@ -144,7 +144,11 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
 
   const createSquareCard = async () => {
     if (!window.Square || !squareConfig || !mountedRef.current) {
-      console.warn('Cannot create Square card - missing dependencies');
+      console.warn('Cannot create Square card - missing dependencies', {
+        hasSquare: !!window.Square,
+        hasConfig: !!squareConfig,
+        isMounted: mountedRef.current
+      });
       return;
     }
 
@@ -159,59 +163,74 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       // Verify container exists
       const container = document.getElementById('square-card-container');
       if (!container) {
-        throw new Error('Square card container not found');
+        throw new Error('Square card container not found in DOM');
+      }
+      console.log('Square container found:', container);
+
+      // Create fresh payments instance with error checking
+      try {
+        paymentsRef.current = window.Square.payments(
+          squareConfig.applicationId, 
+          squareConfig.locationId
+        );
+        console.log('Square payments instance created successfully');
+      } catch (paymentsError: any) {
+        console.error('Failed to create payments instance:', paymentsError);
+        throw new Error(`Payments initialization failed: ${paymentsError.message}`);
       }
 
-      // Create fresh payments instance
-      paymentsRef.current = window.Square.payments(
-        squareConfig.applicationId, 
-        squareConfig.locationId
-      );
-
-      console.log('Square payments instance created');
-
-      // Create card with proper configuration for better UX
-      const card = await paymentsRef.current.card({
-        style: {
-          input: {
-            fontSize: '16px',
-            padding: '12px',
-            color: '#000000',
-            backgroundColor: '#ffffff'
+      // Create card with error handling
+      let card;
+      try {
+        card = await paymentsRef.current.card({
+          style: {
+            input: {
+              fontSize: '16px',
+              padding: '12px',
+              color: '#000000',
+              backgroundColor: '#ffffff'
+            },
+            '.input-container': {
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              borderColor: '#d1d5db',
+              borderRadius: '6px'
+            },
+            '.input-container.is-focus': {
+              borderColor: '#3b82f6',
+              borderWidth: '2px'
+            },
+            '.input-container.is-error': {
+              borderColor: '#ef4444'
+            }
           },
-          '.input-container': {
-            borderWidth: '1px',
-            borderStyle: 'solid',
-            borderColor: '#d1d5db',
-            borderRadius: '6px'
-          },
-          '.input-container.is-focus': {
-            borderColor: '#3b82f6',
-            borderWidth: '2px'
-          },
-          '.input-container.is-error': {
-            borderColor: '#ef4444'
-          }
-        },
-        includeInputLabels: true
-      });
+          includeInputLabels: true
+        });
+        console.log('Square card component created successfully');
+      } catch (cardError: any) {
+        console.error('Failed to create card component:', cardError);
+        throw new Error(`Card creation failed: ${cardError.message}`);
+      }
 
-      console.log('Square card created, attaching to container');
-
-      // Attach to container
-      await card.attach('#square-card-container');
-      
-      console.log('Square card attached successfully');
+      // Attach to container with error handling
+      try {
+        await card.attach('#square-card-container');
+        console.log('Square card attached to DOM successfully');
+      } catch (attachError: any) {
+        console.error('Failed to attach card to DOM:', attachError);
+        throw new Error(`Card attachment failed: ${attachError.message}`);
+      }
       
       if (mountedRef.current) {
         cardRef.current = card;
         setIsInitialized(true);
+        console.log('Square payment form fully initialized');
       }
 
     } catch (error) {
-      console.error('Square card creation error:', error);
+      console.error('Square card creation error details:', error);
       if (mountedRef.current) {
-        onPaymentError(`Payment form initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        onPaymentError(`Payment form setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
