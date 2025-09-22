@@ -783,10 +783,13 @@ export default function Checkout() {
           <div className="max-w-2xl mx-auto">
             <Card>
               <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground mb-6">Your cart is empty</p>
-                <Link href="/shop">
-                  <Button>Continue Shopping</Button>
-                </Link>
+                <div className="py-8">
+                  <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
+                  <p className="text-muted-foreground mb-6">Add some products to your cart before checkout</p>
+                  <Link href="/shop">
+                    <Button size="lg">Continue Shopping</Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>
