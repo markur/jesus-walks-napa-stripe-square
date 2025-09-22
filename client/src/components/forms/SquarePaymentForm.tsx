@@ -192,22 +192,9 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
           style: {
             input: {
               fontSize: '16px',
-              padding: '12px',
               color: '#000000',
-              backgroundColor: '#ffffff'
-            },
-            '.input-container': {
-              borderWidth: '1px',
-              borderStyle: 'solid',
-              borderColor: '#d1d5db',
-              borderRadius: '6px'
-            },
-            '.input-container.is-focus': {
-              borderColor: '#3b82f6',
-              borderWidth: '2px'
-            },
-            '.input-container.is-error': {
-              borderColor: '#ef4444'
+              backgroundColor: '#ffffff',
+              lineHeight: '24px'
             }
           },
           includeInputLabels: true
