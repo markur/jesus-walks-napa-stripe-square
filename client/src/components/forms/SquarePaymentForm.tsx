@@ -174,7 +174,10 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       try {
         paymentsRef.current = window.Square.payments(
           squareConfig.applicationId, 
-          squareConfig.locationId
+          squareConfig.locationId,
+          {
+            trustedOrigin: window.location.origin // Fix CSP trustedOrigin issue
+          }
         );
         console.log('Square payments instance created successfully');
       } catch (paymentsError: any) {

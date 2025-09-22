@@ -90,13 +90,30 @@ export function SafeKeyPaymentForm({ amount, onPaymentSuccess, onPaymentError }:
   };
 
   const formatMobileNumber = (value: string) => {
-    // Remove all non-digit characters
-    const v = value.replace(/\D/g, '');
-    // Format as +1 (XXX) XXX-XXXX
+    // Remove all non-digit characters except leading +
+    let v = value.replace(/[^\d+]/g, '');
+    
+    // Handle country code entry
+    if (v.startsWith('+1')) {
+      v = v.slice(2); // Remove +1 to process digits
+    } else if (v.startsWith('1') && v.length === 11) {
+      v = v.slice(1); // Remove leading 1 for US numbers
+    } else if (v.startsWith('+')) {
+      return value; // Let user type other country codes
+    }
+    
+    // Format as +1 (XXX) XXX-XXXX for US numbers
     if (v.length >= 10) {
       return `+1 (${v.slice(0, 3)}) ${v.slice(3, 6)}-${v.slice(6, 10)}`;
+    } else if (v.length > 6) {
+      return `+1 (${v.slice(0, 3)}) ${v.slice(3, 6)}-${v.slice(6)}`;
+    } else if (v.length > 3) {
+      return `+1 (${v.slice(0, 3)}) ${v.slice(3)}`;
+    } else if (v.length > 0) {
+      return `+1 ${v}`;
     }
-    return `+1 ${v}`;
+    
+    return '+1 ';
   };
 
   return (
