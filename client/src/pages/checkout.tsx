@@ -287,6 +287,8 @@ function CheckoutForm() {
       // Clear cart and redirect to confirmation
       clearCart();
       setLocation('/order-confirmation');
+      // Ensure user scrolls to top after redirect
+      setTimeout(() => window.scrollTo(0, 0), 100);
     } catch (error) {
       console.error('Order creation failed:', error);
       throw new Error('Order creation failed. Please contact support.');
