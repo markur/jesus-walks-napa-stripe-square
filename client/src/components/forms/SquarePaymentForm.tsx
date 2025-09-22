@@ -107,12 +107,15 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       // Load Square SDK with a promise wrapper for better error handling
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        // Always use sandbox for development
-        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
+        // Use SDK URL based on environment from config
+        const sdkUrl = squareConfig?.environment === 'production' 
+          ? 'https://web.squarecdn.com/v1/square.js'
+          : 'https://sandbox.web.squarecdn.com/v1/square.js';
+        script.src = sdkUrl;
         script.async = true;
         
         script.onload = () => {
-          console.log('Square SDK loaded successfully from sandbox');
+          console.log(`Square SDK loaded successfully from ${squareConfig?.environment || 'sandbox'}`);
           // Give Square SDK a moment to initialize
           setTimeout(() => resolve(true), 500);
         };
