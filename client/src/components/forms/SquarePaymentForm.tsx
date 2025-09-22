@@ -90,10 +90,13 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
     try {
       // Check if Square is already loaded
       if (window.Square) {
+        console.log('Square SDK already loaded, creating card...');
         await createSquareCard();
         return;
       }
 
+      console.log('Loading Square SDK...');
+      
       // Remove any existing Square scripts
       const existingScripts = document.querySelectorAll('script[src*="square"]');
       existingScripts.forEach(script => script.remove());
@@ -104,15 +107,14 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
       // Load Square SDK with a promise wrapper for better error handling
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        const isProduction = process.env.NODE_ENV === 'production';
-        script.src = isProduction 
-          ? 'https://web.squarecdn.com/v1/square.js'
-          : 'https://sandbox.web.squarecdn.com/v1/square.js';
+        // Always use sandbox for development
+        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
         script.async = true;
         
         script.onload = () => {
-          console.log('Square SDK loaded successfully');
-          resolve(true);
+          console.log('Square SDK loaded successfully from sandbox');
+          // Give Square SDK a moment to initialize
+          setTimeout(() => resolve(true), 500);
         };
         
         script.onerror = (error) => {
@@ -122,12 +124,15 @@ export function SquarePaymentForm({ amount, onPaymentSuccess, onPaymentError }: 
         
         document.head.appendChild(script);
         
-        // Timeout after 10 seconds
-        setTimeout(() => reject(new Error('Square SDK load timeout')), 10000);
+        // Timeout after 15 seconds (increased timeout)
+        setTimeout(() => reject(new Error('Square SDK load timeout')), 15000);
       });
 
-      if (mountedRef.current) {
+      if (mountedRef.current && window.Square) {
+        console.log('Square SDK ready, creating card...');
         await createSquareCard();
+      } else {
+        throw new Error('Square SDK not available after loading');
       }
     } catch (error) {
       console.error('Square initialization error:', error);
