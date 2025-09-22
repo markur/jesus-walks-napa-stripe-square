@@ -2006,7 +2006,7 @@ Explain in 1-2 sentences why this product matches their request, incorporating r
 
     const explanation = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
-      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 100, name: 'Claude 3.5 Sonnet', active: true, id: 1 }
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: '100', name: 'Claude 3.5 Sonnet', active: true, id: '1' }
     );
     
     return explanation || `This ${product.name} matches your criteria and is available for $${product.price}.`;
@@ -2030,7 +2030,7 @@ Using the knowledge base information above, provide a helpful and accurate answe
 
     const response = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
-      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: 200, name: 'Claude 3.5 Sonnet', active: true, id: 1 }
+      { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', temperature: 0.3, maxTokens: '200', name: 'Claude 3.5 Sonnet', active: true, id: '1' }
     );
     
     return response || "I'm sorry, I couldn't generate a response based on the available information.";
