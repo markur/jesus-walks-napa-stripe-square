@@ -66,7 +66,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
+        from: process.env.SMTP_USER || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
         to,
         subject: 'Welcome to Jesus Walks Napa!',
         html: `
@@ -96,7 +96,7 @@ class EmailService {
     try {
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
+        from: process.env.SMTP_USER || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
         to,
         subject: 'Password Reset Request - Jesus Walks Napa',
         html: `
@@ -127,7 +127,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
+        from: process.env.SMTP_USER || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
         to,
         subject: `Order Confirmation #${order.id} - Jesus Walks Napa`,
         html: `
@@ -158,7 +158,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
+        from: process.env.SMTP_USER || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jesuswalks.com',
         to,
         subject: `Your Order #${order.id} Has Shipped - Jesus Walks Napa`,
         html: `
