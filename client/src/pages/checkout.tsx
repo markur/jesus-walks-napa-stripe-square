@@ -62,8 +62,8 @@ function CheckoutForm() {
       .max(50, "Email cannot exceed 50 characters"),
     phone: z.string()
       .optional()
-      .refine((value) => !value || /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/.test(value), {
-        message: "Please enter a valid phone number (e.g., (555) 123-4567)"
+      .refine((value) => !value || /^(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/.test(value), {
+        message: "Please enter a valid phone number (e.g., +1 (555) 123-4567 or (555) 123-4567)"
       }),
   });
 
