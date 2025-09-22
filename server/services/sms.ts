@@ -40,11 +40,30 @@ export class SMSService {
       // Clean phone number (remove non-digits)
       const cleanedPhone = phoneNumber.replace(/\D/g, '');
       
-      if (cleanedPhone.length < 10) {
-        console.error(`Invalid phone number format`);
-        return false;
+      // Validate US phone number format
+      if (cleanedPhone.length === 11 && cleanedPhone.startsWith('1')) {
+        // Remove leading 1 for US numbers
+        const usPhone = cleanedPhone.substring(1);
+        if (usPhone.length === 10) {
+          const formattedPhone = usPhone;
+          return this.sendFormattedSMS(formattedPhone, message);
+        }
+      } else if (cleanedPhone.length === 10) {
+        // Direct 10-digit US number
+        return this.sendFormattedSMS(cleanedPhone, message);
       }
+      
+      console.error(`Invalid phone number format: ${cleanedPhone} (length: ${cleanedPhone.length})`);
+      return false;
 
+    } catch (error: any) {
+      console.error('Failed to send SMS:', error.message);
+      return false;
+    }
+  }
+
+  private async sendFormattedSMS(cleanedPhone: string, message: string): Promise<boolean> {
+    try {
       // Use URLSearchParams for proper form encoding
       const formData = new URLSearchParams();
       formData.append('phone', cleanedPhone);
@@ -59,7 +78,7 @@ export class SMSService {
       });
 
       if (response.data?.success) {
-        console.log(`SMS sent successfully to: ${this.maskPhoneNumber(phoneNumber)}`);
+        console.log(`SMS sent successfully to: ${this.maskPhoneNumber(cleanedPhone)}`);
         return true;
       } else {
         console.error('SMS failed:', response.data);
