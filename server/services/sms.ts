@@ -40,21 +40,22 @@ export class SMSService {
       // Clean phone number (remove non-digits)
       const cleanedPhone = phoneNumber.replace(/\D/g, '');
       
-      // Validate US phone number format
+      // Format to E.164 for US numbers
+      let e164Phone: string;
+      
       if (cleanedPhone.length === 11 && cleanedPhone.startsWith('1')) {
-        // Remove leading 1 for US numbers
-        const usPhone = cleanedPhone.substring(1);
-        if (usPhone.length === 10) {
-          const formattedPhone = usPhone;
-          return this.sendFormattedSMS(formattedPhone, message);
-        }
+        // Already has country code
+        e164Phone = `+${cleanedPhone}`;
       } else if (cleanedPhone.length === 10) {
-        // Direct 10-digit US number
-        return this.sendFormattedSMS(cleanedPhone, message);
+        // Add US country code (+1)
+        e164Phone = `+1${cleanedPhone}`;
+      } else {
+        console.error(`Invalid phone number format: ${cleanedPhone} (length: ${cleanedPhone.length})`);
+        return false;
       }
       
-      console.error(`Invalid phone number format: ${cleanedPhone} (length: ${cleanedPhone.length})`);
-      return false;
+      console.log(`Formatting phone ${this.maskPhoneNumber(cleanedPhone)} to E.164: ${this.maskPhoneNumber(e164Phone)}`);
+      return this.sendFormattedSMS(e164Phone, message);
 
     } catch (error: any) {
       console.error('Failed to send SMS:', error.message);
@@ -62,13 +63,16 @@ export class SMSService {
     }
   }
 
-  private async sendFormattedSMS(cleanedPhone: string, message: string): Promise<boolean> {
+  private async sendFormattedSMS(e164Phone: string, message: string): Promise<boolean> {
     try {
       // Use URLSearchParams for proper form encoding
       const formData = new URLSearchParams();
-      formData.append('phone', cleanedPhone);
+      formData.append('phone', e164Phone);
       formData.append('message', message);
       formData.append('key', process.env.TEXTBELT_KEY || 'textbelt');
+      formData.append('region', 'us'); // Add region parameter for US numbers
+
+      console.log(`Sending SMS to ${this.maskPhoneNumber(e164Phone)} with region=us`);
 
       const response = await axios.post(`${this.config.textbeltUrl}/text`, formData, {
         timeout: 30000, // 30 second timeout
@@ -78,7 +82,7 @@ export class SMSService {
       });
 
       if (response.data?.success) {
-        console.log(`SMS sent successfully to: ${this.maskPhoneNumber(cleanedPhone)}`);
+        console.log(`SMS sent successfully to: ${this.maskPhoneNumber(e164Phone)}`);
         return true;
       } else {
         console.error('SMS failed:', response.data);
