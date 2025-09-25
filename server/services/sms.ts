@@ -95,11 +95,21 @@ export class SMSService {
   }
 
   private maskPhoneNumber(phoneNumber: string): string {
-    const cleaned = phoneNumber.replace(/\D/g, '');
-    if (cleaned.length >= 10) {
-      return `${cleaned.slice(0, 3)}-***-${cleaned.slice(-4)}`;
+    if (phoneNumber.startsWith('+')) {
+      // For international numbers, preserve the + and mask the end
+      const cleaned = phoneNumber.replace(/\D/g, '');
+      if (cleaned.length >= 10) {
+        return `+${cleaned.slice(0, -4)}***${cleaned.slice(-4)}`;
+      }
+      return '+***-****';
+    } else {
+      // For domestic numbers, use original format
+      const cleaned = phoneNumber.replace(/\D/g, '');
+      if (cleaned.length >= 10) {
+        return `${cleaned.slice(0, 3)}-***-${cleaned.slice(-4)}`;
+      }
+      return '***-****';
     }
-    return '***-****';
   }
 
   async sendOrderConfirmationSMS(phoneNumber: string, order: any): Promise<boolean> {
