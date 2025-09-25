@@ -65,14 +65,24 @@ export class SMSService {
 
   private async sendFormattedSMS(e164Phone: string, message: string): Promise<boolean> {
     try {
+      // Convert E.164 format to 10-digit US format for TextBelt
+      const cleanedPhone = e164Phone.replace(/\D/g, '');
+      let textbeltPhone = cleanedPhone;
+      
+      // Remove country code if present (TextBelt expects 9-10 digits)
+      if (cleanedPhone.startsWith('1') && cleanedPhone.length === 11) {
+        textbeltPhone = cleanedPhone.substring(1); // Remove leading 1
+      }
+      
+      console.log(`Converting ${this.maskPhoneNumber(e164Phone)} to TextBelt format: ${this.maskPhoneNumber(textbeltPhone)} (${textbeltPhone.length} digits)`);
+
       // Use URLSearchParams for proper form encoding
       const formData = new URLSearchParams();
-      formData.append('phone', e164Phone);
+      formData.append('number', textbeltPhone); // TextBelt expects 'number', not 'phone'
       formData.append('message', message);
       formData.append('key', process.env.TEXTBELT_KEY || 'textbelt');
-      formData.append('region', 'us'); // Add region parameter for US numbers
 
-      console.log(`Sending SMS to ${this.maskPhoneNumber(e164Phone)} with region=us`);
+      console.log(`Sending SMS to ${this.maskPhoneNumber(textbeltPhone)} (${textbeltPhone.length} digits)`);
 
       const response = await axios.post(`${this.config.textbeltUrl}/text`, formData, {
         timeout: 30000, // 30 second timeout
