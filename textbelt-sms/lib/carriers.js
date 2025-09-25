@@ -18,9 +18,6 @@ module.exports = {
   alaskacommunications: [
     '%s@paging.acswireless.com',
   ],
-  rogers: [
-    '%s@pcs.rogers.com',
-  ],
   cricket: [
     '%s@mms.cricketwireless.net',
   ],
@@ -87,9 +84,6 @@ module.exports = {
   illinoisvalleycellular: [
     '%s@ivctext.com',
   ],
-  alltel: [
-    '%s@message.alltel.com',
-  ],
   centurytel: [
     '%s@messaging.centurytel.net',
   ],
@@ -108,20 +102,8 @@ module.exports = {
   koodomobile: [
     '%s@msg.koodomobile.com',
   ],
-  metrocall2way: [
-    '%s@my2way.com',
-  ],
   boostmobile: [
     '%s@myboostmobile.com',
-  ],
-  onlinebeep: [
-    '%s@onlinebeep.net',
-  ],
-  metrocall: [
-    '%s@page.metrocall.com',
-  ],
-  mci: [
-    '%s@pagemci.com',
   ],
   ameritechpaging: [
     '%s@paging.acswireless.com',

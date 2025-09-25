@@ -2,12 +2,12 @@ module.exports = {
 
   us: [
     '%s@email.uscc.net',
-    '%s@message.alltel.com',
+
     '%s@messaging.sprintpcs.com',
     '%s@mobile.celloneusa.com',
     '%s@msg.telus.com',
     '%s@paging.acswireless.com',
-    '%s@pcs.rogers.com',
+
 
     '%s@sms.ntwls.net',
     '%s@tmomail.net',
@@ -37,7 +37,7 @@ module.exports = {
     '%s@ideacellular.net',
     '%s@inlandlink.com',
     '%s@ivctext.com',
-    '%s@message.alltel.com',
+
     '%s@messaging.centurytel.net',
     '%s@messaging.sprintpcs.com',
     '%s@mobile.celloneusa.com',
@@ -47,13 +47,10 @@ module.exports = {
     '%s@msg.clearnet.com',
     '%s@msg.koodomobile.com',
     '%s@msg.telus.com',
-    '%s@my2way.com',
     '%s@myboostmobile.com',
-    '%s@onlinebeep.net',
-    '%s@page.metrocall.com',
-    '%s@pagemci.com',
+
     '%s@paging.acswireless.com',
-    '%s@pcs.rogers.com',
+
     '%s@pcsone.net',
 
     '%s@satellink.net',
@@ -114,7 +111,7 @@ module.exports = {
     '%s@o2.co.uk',
     '%s@o2imail.co.uk',
     '%s@onemail.at',
-    '%s@onlinebeep.net',
+
     '%s@optusmobile.com.au',
     // '%s@orange.net',
     // '%s@orangemail.co.in',
