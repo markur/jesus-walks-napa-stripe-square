@@ -8,7 +8,7 @@ module.exports = {
     '%s@msg.telus.com',
     '%s@paging.acswireless.com',
     '%s@pcs.rogers.com',
-    '%s@qwestmp.com',
+
     '%s@sms.ntwls.net',
     '%s@tmomail.net',
     '%s@txt.att.net',
@@ -55,7 +55,7 @@ module.exports = {
     '%s@paging.acswireless.com',
     '%s@pcs.rogers.com',
     '%s@pcsone.net',
-    '%s@qwestmp.com',
+
     '%s@satellink.net',
     '%s@sms.3rivers.net',
     '%s@sms.bluecell.com',

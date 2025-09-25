@@ -129,9 +129,6 @@ module.exports = {
   pcsone: [
     '%s@pcsone.net',
   ],
-  qwest: [
-    '%s@qwestmp.com',
-  ],
   satellink: [
     '%s@satellink.net',
   ],
